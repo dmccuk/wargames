@@ -108,6 +108,8 @@
     <section class="panel" id="terminal">
       <div id="term-output" aria-live="polite"></div>
       <div id="prompt"><span class="dim">&gt;</span><span id="typing"></span><span id="cursor"></span></div>
+      <!-- Invisible, focusable input to reliably capture typing in all embeds/browsers -->
+      <input id="ghost-input" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal input" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;" />
     </section>
 
     <section class="panel" id="globe-wrap">
@@ -198,13 +200,27 @@
       }
     }
 
-    window.addEventListener('keydown', (e)=>{
+    // Use a hidden input for reliable keyboard capture
+    const ghost = document.getElementById('ghost-input');
+
+    function focusGhost(){ ghost.focus(); }
+    // Focus on load and whenever the terminal is clicked
+    window.addEventListener('load', ()=> setTimeout(focusGhost, 0));
+    document.getElementById('terminal').addEventListener('mousedown', focusGhost);
+    document.getElementById('terminal').addEventListener('touchstart', focusGhost);
+
+    // Sync regular character input
+    ghost.addEventListener('input', ()=>{ inputBuffer = ghost.value; typeToPrompt(inputBuffer); });
+
+    // Handle commands / history keys
+    ghost.addEventListener('keydown', (e)=>{
       if (['Alt','Meta','Control'].includes(e.key)) return;
-      if (e.key === 'Backspace'){ inputBuffer = inputBuffer.slice(0,-1); typeToPrompt(inputBuffer); return; }
-      if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; typeToPrompt(''); return; }
-      if (e.key === 'ArrowUp'){ if (history.length){ historyIndex = Math.min(historyIndex+1, history.length-1); inputBuffer = history[historyIndex]; typeToPrompt(inputBuffer);} return; }
-      if (e.key === 'ArrowDown'){ if (history.length){ historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; typeToPrompt(inputBuffer);} return; }
-      if (e.key.length === 1){ inputBuffer += e.key; typeToPrompt(inputBuffer); }
+      if (e.key === 'Enter'){
+        history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); return; }
+      if (e.key === 'ArrowUp'){
+        if (history.length){ historyIndex = Math.min(historyIndex+1, history.length-1); inputBuffer = history[historyIndex]; ghost.value = inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); return; }
+      if (e.key === 'ArrowDown'){
+        if (history.length){ historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); return; }
     });
 
     boot();
@@ -369,7 +385,7 @@
     function animate(now){
       requestAnimationFrame(animate);
       controls.update();
-      globe.rotation.y += 0.0008; rings.rotation.y += 0.0008;
+      globe.rotation.y += 0.0003; rings.rotation.y += 0.0003;
 
       // reveal missile tracks progressively
       const t = now;
