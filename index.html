@@ -286,16 +286,66 @@
         new ResizeObserver(onResize).observe(wrap); window.addEventListener('resize', onResize); setTimeout(onResize,0);
         const R=160; let rot=0; const tracks=[];
         addTrack=function(from,to,duration=6000){ const start=Date.now(); tracks.push({from,to,start,duration,done:false}); tracksCount.textContent=tracks.filter(t=>!t.done).length; };
-        function proj(x,y,z){ const scale = 300/(300+z); return {x: canvas.width/2 + x*scale, y: canvas.height/2 + y*scale}; }
+        function proj(x,y,z){ // simple perspective (front hemisphere only)
+        const scale = 300/(300+z); // z>0 ensured by caller
+        return {x: canvas.width/2 + x*scale, y: canvas.height/2 + y*scale};
+      }; }
         function rotY(x,z,a){ const ca=Math.cos(a), sa=Math.sin(a); return {x: x*ca - z*sa, z: x*sa + z*ca}; }
         function latLonToXYZ(lat,lon,rad){ const phi=(90-lat)*(Math.PI/180); const theta=(lon+180)*(Math.PI/180); const x = -rad*Math.sin(phi)*Math.cos(theta); const z = rad*Math.sin(phi)*Math.sin(theta); const y = rad*Math.cos(phi); return {x,y,z}; }
         function drawGraticule(){
-          ctx.globalAlpha=0.9; ctx.lineWidth=1; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--phosphor') || '#3cff8f';
-          function strokeFront(points){ ctx.beginPath(); let penDown=false; for (let i=0;i<points.length;i++){ const p=points[i]; const r=rotY(p.x,p.z,rot); const zc=r.z; if (zc<=0){ penDown=false; continue; } const s=proj(r.x,p.y,zc); if(!penDown){ ctx.moveTo(s.x,s.y); penDown=true; } else { ctx.lineTo(s.x,s.y); } } ctx.stroke(); }
+          ctx.globalAlpha=0.9; ctx.lineWidth=1; ctx.lineCap='round';
+          ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--phosphor') || '#3cff8f';
+          function strokeFront(points){
+            ctx.beginPath();
+            let penDown=false; let prevS=null;
+            for (let i=0;i<points.length;i++){
+              const p=points[i];
+              const r=rotY(p.x,p.z,rot); const zc=r.z;
+              if (zc<=0){ penDown=false; prevS=null; continue; }
+              const s=proj(r.x,p.y,zc);
+              if (!penDown){ ctx.moveTo(s.x,s.y); penDown=true; prevS=s; continue; }
+              const dx=s.x - prevS.x, dy=s.y - prevS.y;
+              if (dx*dx + dy*dy > 2500){ // big jump across seam -> start new subpath
+                ctx.moveTo(s.x,s.y);
+              } else {
+                ctx.lineTo(s.x,s.y);
+              }
+              prevS=s;
+            }
+            ctx.stroke();
+          }
+          for (let lat=-60; lat<=60; lat+=30){ const pts=[]; for (let lon=-180; lon<=180; lon+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
+          for (let lon=0; lon<180; lon+=20){ const pts=[]; for (let lat=-90; lat<=90; lat+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
+        } const s=proj(r.x,p.y,zc); if(!penDown){ ctx.moveTo(s.x,s.y); penDown=true; } else { ctx.lineTo(s.x,s.y); } } ctx.stroke(); }
           for (let lat=-60; lat<=60; lat+=30){ const pts=[]; for (let lon=-180; lon<=180; lon+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
           for (let lon=0; lon<180; lon+=20){ const pts=[]; for (let lat=-90; lat<=90; lat+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
         }
-        function drawTracks(){ const now=Date.now(); ctx.lineWidth=2; ctx.globalAlpha=0.9; ctx.strokeStyle='#3cff8f'; tracks.forEach(t=>{ const p1=latLonToXYZ(t.from.lat,t.from.lon,R); const p2=latLonToXYZ(t.to.lat,t.to.lon,R); const mid={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2 + R*0.5, z:(p1.z+p2.z)/2}; const steps=160; const elapsed=Math.min(1,(now-t.start)/t.duration); const endIdx=Math.floor(steps*elapsed); let penDown=false; ctx.beginPath(); for (let i=0;i<=endIdx;i++){ const a=i/steps; const xa=(1-a)*(1-a)*p1.x + 2*(1-a)*a*mid.x + a*a*p2.x; const ya=(1-a)*(1-a)*p1.y + 2*(1-a)*a*mid.y + a*a*p2.y; const za=(1-a)*(1-a)*p1.z + 2*(1-a)*a*mid.z + a*a*p2.z; const r=rotY(xa,za,rot); const zc=r.z; if (zc<=0){ penDown=false; continue; } const s=proj(r.x,ya,zc); if(!penDown){ ctx.moveTo(s.x,s.y); penDown=true; } else ctx.lineTo(s.x,s.y); } ctx.stroke(); if (elapsed>=1) t.done=true; }); tracksCount.textContent = tracks.filter(t=>!t.done).length; }
+        function drawTracks(){
+          const now=Date.now(); ctx.lineWidth=2; ctx.globalAlpha=0.9; ctx.lineCap='round'; ctx.strokeStyle='#3cff8f';
+          tracks.forEach(t=>{
+            const p1=latLonToXYZ(t.from.lat,t.from.lon,R);
+            const p2=latLonToXYZ(t.to.lat,t.to.lon,R);
+            const mid={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2 + R*0.5, z:(p1.z+p2.z)/2};
+            const steps=160; const elapsed=Math.min(1,(now-t.start)/t.duration); const endIdx=Math.floor(steps*elapsed);
+            ctx.beginPath(); let penDown=false; let prevS=null;
+            for (let i=0;i<=endIdx;i++){
+              const a=i/steps;
+              const xa=(1-a)*(1-a)*p1.x + 2*(1-a)*a*mid.x + a*a*p2.x;
+              const ya=(1-a)*(1-a)*p1.y + 2*(1-a)*a*mid.y + a*a*p2.y;
+              const za=(1-a)*(1-a)*p1.z + 2*(1-a)*a*mid.z + a*a*p2.z;
+              const r=rotY(xa,za,rot); const zc=r.z; if (zc<=0){ penDown=false; prevS=null; continue; }
+              const s=proj(r.x,ya,zc);
+              if (!penDown){ ctx.moveTo(s.x,s.y); penDown=true; prevS=s; continue; }
+              const dx=s.x - prevS.x, dy=s.y - prevS.y;
+              if (dx*dx + dy*dy > 2500){ ctx.moveTo(s.x,s.y); }
+              else { ctx.lineTo(s.x,s.y); }
+              prevS=s;
+            }
+            ctx.stroke();
+            if (elapsed>=1) t.done=true;
+          });
+          tracksCount.textContent = tracks.filter(t=>!t.done).length;
+        }; const steps=160; const elapsed=Math.min(1,(now-t.start)/t.duration); const endIdx=Math.floor(steps*elapsed); let penDown=false; ctx.beginPath(); for (let i=0;i<=endIdx;i++){ const a=i/steps; const xa=(1-a)*(1-a)*p1.x + 2*(1-a)*a*mid.x + a*a*p2.x; const ya=(1-a)*(1-a)*p1.y + 2*(1-a)*a*mid.y + a*a*p2.y; const za=(1-a)*(1-a)*p1.z + 2*(1-a)*a*mid.z + a*a*p2.z; const r=rotY(xa,za,rot); const zc=r.z; if (zc<=0){ penDown=false; continue; } const s=proj(r.x,ya,zc); if(!penDown){ ctx.moveTo(s.x,s.y); penDown=true; } else ctx.lineTo(s.x,s.y); } ctx.stroke(); if (elapsed>=1) t.done=true; }); tracksCount.textContent = tracks.filter(t=>!t.done).length; }
         function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); rot += 0.003; drawGraticule(); drawTracks(); requestAnimationFrame(draw); }
         draw(); setInterval(()=> triggerStrikeDemo(), 9000);
       }
