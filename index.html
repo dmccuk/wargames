@@ -733,6 +733,56 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
+    // ==================== GAME STATE (DECLARED FIRST) ====================
+    let gameScore = 0;
+    let currentLevel = 0;
+    let gameStartTime = 0;
+    let timerInterval = null;
+    let codesSolved = 0;
+    let defconLevel = 5;
+    let missileCount = 0;
+    let missiles = [];
+    let mapMissiles = [];
+    let geoData = null;
+    let launchTimer = null;
+    let autoLaunchEnabled = false;
+    let scene, camera, renderer, globe;
+    let mapCanvas, mapCtx;
+
+    const countries = {
+      USA: { lat: 39.8283, lon: -98.5795 },
+      RUSSIA: { lat: 61.5240, lon: 105.3188 },
+      CHINA: { lat: 35.8617, lon: 104.1954 },
+      UK: { lat: 55.3781, lon: -3.4360 },
+      FRANCE: { lat: 46.2276, lon: 2.2137 },
+      GERMANY: { lat: 51.1657, lon: 10.4515 },
+      INDIA: { lat: 20.5937, lon: 78.9629 },
+      JAPAN: { lat: 36.2048, lon: 138.2529 },
+      CANADA: { lat: 56.1304, lon: -106.3468 },
+      AUSTRALIA: { lat: -25.2744, lon: 133.7751 }
+    };
+
+    const puzzles = [
+      {
+        type: 'binary',
+        question: 'CONVERT BINARY TO DECIMAL',
+        binary: '11010101',
+        answer: 213
+      },
+      {
+        type: 'logic',
+        question: 'SOLVE: IF A=1, B=2, C=3... WHAT IS WOPR?',
+        answer: 72
+      },
+      {
+        type: 'pattern',
+        question: 'COMPLETE SEQUENCE: 2, 4, 8, 16, ?',
+        answer: 32
+      }
+    ];
+
+    let currentPuzzle = 0;
+
     // ==================== AUDIO SYSTEM ====================
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -798,14 +848,26 @@
       osc.stop(audioContext.currentTime + 0.15);
     }
 
-    // ==================== GAME STATE ====================
-    let gameScore = 0;
-    let currentLevel = 0;
-    let gameStartTime = 0;
-    let timerInterval = null;
-    let codesSolved = 0;
-
     // ==================== UTILITY FUNCTIONS ====================
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function addScore(points) {
+      gameScore += points;
+      updateAllScores();
+    }
+
+    function updateAllScores() {
+      document.querySelectorAll('[id^="score"]').forEach(el => {
+        el.textContent = gameScore;
+      });
+      const finalScore = document.getElementById('final-score');
+      if (finalScore) finalScore.textContent = gameScore;
+    }
+
+    function startTimer() {
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
@@ -863,9 +925,15 @@
       }
     }
 
-    document.getElementById('password-input')?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') checkPassword();
-    });
+    // Setup password input event listener after DOM loads
+    setTimeout(() => {
+      const passwordInput = document.getElementById('password-input');
+      if (passwordInput) {
+        passwordInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') checkPassword();
+        });
+      }
+    }, 100);
 
     // ==================== LEVEL 2: WAR DIALER ====================
     function startLevel2() {
@@ -937,27 +1005,6 @@
     }
 
     // ==================== LEVEL 4: LAUNCH CODES ====================
-    const puzzles = [
-      {
-        type: 'binary',
-        question: 'CONVERT BINARY TO DECIMAL',
-        binary: '11010101',
-        answer: 213
-      },
-      {
-        type: 'logic',
-        question: 'SOLVE: IF A=1, B=2, C=3... WHAT IS WOPR?',
-        answer: 72 // W(23) + O(15) + P(16) + R(18) = 72
-      },
-      {
-        type: 'pattern',
-        question: 'COMPLETE SEQUENCE: 2, 4, 8, 16, ?',
-        answer: 32
-      }
-    ];
-
-    let currentPuzzle = 0;
-
     function startLevel4() {
       currentLevel = 4;
       showScreen('level4-screen');
@@ -1025,34 +1072,7 @@
       }
     }
 
-    document.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && document.getElementById('puzzle-input')) {
-        checkPuzzle();
-      }
-    });
-
     // ==================== LEVEL 5: NORAD SYSTEM ====================
-    let defconLevel = 5;
-    let missileCount = 0;
-    let missiles = [];
-    let mapMissiles = [];
-    let geoData = null;
-    let launchTimer = null;
-    let autoLaunchEnabled = false;
-
-    const countries = {
-      USA: { lat: 39.8283, lon: -98.5795 },
-      RUSSIA: { lat: 61.5240, lon: 105.3188 },
-      CHINA: { lat: 35.8617, lon: 104.1954 },
-      UK: { lat: 55.3781, lon: -3.4360 },
-      FRANCE: { lat: 46.2276, lon: 2.2137 },
-      GERMANY: { lat: 51.1657, lon: 10.4515 },
-      INDIA: { lat: 20.5937, lon: 78.9629 },
-      JAPAN: { lat: 36.2048, lon: 138.2529 },
-      CANADA: { lat: 56.1304, lon: -106.3468 },
-      AUSTRALIA: { lat: -25.2744, lon: 133.7751 }
-    };
-
     function startLevel5() {
       currentLevel = 5;
       showScreen('norad-screen');
@@ -1263,8 +1283,6 @@
     }
 
     // ==================== THREE.JS GLOBE ====================
-    let scene, camera, renderer, globe;
-
     function initGlobe() {
       const globeCanvas = document.getElementById('globeCanvas');
       scene = new THREE.Scene();
@@ -1366,8 +1384,6 @@
     }
 
     // ==================== 2D MAP ====================
-    let mapCanvas, mapCtx;
-
     function initMap() {
       mapCanvas = document.getElementById('mapCanvas');
       mapCtx = mapCanvas.getContext('2d');
@@ -1523,9 +1539,15 @@
       });
     }
 
+    // ==================== WINDOW RESIZE ====================
     window.addEventListener('resize', () => {
       if (renderer) resizeGlobe();
       if (mapCanvas) resizeMap();
+    });
+
+    // ==================== INITIALIZE ON LOAD ====================
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('WARGAMES loaded successfully');
     });
   </script>
 </body>
