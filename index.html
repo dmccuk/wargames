@@ -51,7 +51,7 @@
     }
 
     #header, #footer {
-      position: absolute; 
+      position: fixed;
       left: 0; 
       right: 0;
       padding: 12px 20px; 
@@ -117,7 +117,7 @@
     }
 
     #main-container {
-      position: absolute;
+      position: fixed;
       top: 60px;
       bottom: 60px;
       left: 0;
@@ -126,7 +126,7 @@
     }
 
     #terminal-section {
-      flex: 1;
+      width: 40%;
       display: flex;
       flex-direction: column;
       border-right: 2px solid var(--phosphor);
@@ -232,34 +232,27 @@
     }
 
     .display-section {
-      flex: 1.5;
+      width: 60%;
       display: flex;
       flex-direction: column;
-      padding: 20px;
+      padding: 15px;
+      gap: 15px;
     }
 
-    .globe-container {
+    .globe-container, .map-container {
       flex: 1;
       position: relative;
       border: 2px solid var(--phosphor);
       background: #000000;
       box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.2);
-      margin-bottom: 20px;
       overflow: hidden;
     }
 
-    .map-container {
-      flex: 1;
-      position: relative;
-      border: 2px solid var(--phosphor);
-      background: rgba(10, 10, 10, 0.9);
-      box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.2);
-      overflow: hidden;
-    }
-
-    canvas {
-      width: 100%;
-      height: 100%;
+    .globe-container canvas,
+    .map-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
     }
 
     #defcon {
@@ -440,7 +433,7 @@
     let systemReady = false;
     let lastCommand = '-';
 
-    // Country coordinates (lat, lon) for markers and targeting
+    // Country coordinates
     const countries = {
       USA: { lat: 39.8283, lon: -98.5795 },
       RUSSIA: { lat: 61.5240, lon: 105.3188 },
@@ -508,7 +501,6 @@
         addLine('');
         systemReady = true;
         updateStatus();
-        playError();
       });
 
     function launchMissile(source, target) {
@@ -528,9 +520,9 @@
       addLine(`TRAJECTORY: ${source} → ${target}`);
       addLine(`ESTIMATED TIME TO IMPACT: ${Math.floor(Math.random() * 10 + 15)} MINUTES`);
 
-      // Add to globe missiles
       const sourceLoc = countries[source];
       const targetLoc = countries[target];
+      
       missiles.push({
         source: { lat: sourceLoc.lat, lon: sourceLoc.lon },
         target: { lat: targetLoc.lat, lon: targetLoc.lon },
@@ -538,7 +530,6 @@
         active: true
       });
 
-      // Add to map missiles (convert lat/lon to canvas coordinates)
       const sourceX = ((sourceLoc.lon + 180) / 360) * mapCanvas.width;
       const sourceY = ((90 - sourceLoc.lat) / 180) * mapCanvas.height;
       const targetX = ((targetLoc.lon + 180) / 360) * mapCanvas.width;
@@ -552,7 +543,6 @@
         explosion: null
       });
 
-      // Update DEFCON
       const oldDefcon = defconLevel;
       if (missileCount > 5 && defconLevel > 1) {
         defconLevel = 1;
@@ -575,7 +565,6 @@
       updateStatus();
     }
 
-    // Command processor
     commandInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const command = commandInput.value.trim().toUpperCase();
@@ -601,7 +590,6 @@
             addLine('SYSTEM READY. TYPE LAUNCH [SOURCE] [TARGET] TO FIRE');
             addLine('TYPE LIST TO SEE AVAILABLE COUNTRIES');
             updateStatus();
-            playBeep();
           } else {
             addLine('GAME ALREADY ACTIVE');
           }
@@ -624,15 +612,12 @@
           Object.keys(countries).forEach(country => {
             addLine('  - ' + country);
           });
-          playBeep();
         } else if (command === 'STATUS') {
           addLine('');
           addLine('SYSTEM STATUS REPORT:');
           addLine(`DEFCON LEVEL: ${defconLevel}`);
           addLine(`MISSILES LAUNCHED: ${missileCount}`);
           addLine(`GAME STATUS: ${gameActive ? 'ACTIVE' : 'STANDBY'}`);
-          addLine(`SYSTEM: ${systemReady ? 'ONLINE' : 'LOADING'}`);
-          playBeep();
         } else if (command.startsWith('DEFCON ')) {
           const level = parseInt(command.split(' ')[1]);
           if (level >= 1 && level <= 5) {
@@ -657,7 +642,6 @@
           addLine('  DEFCON [1-5] - Change DEFCON level');
           addLine('  CLEAR - Clear terminal');
           addLine('  HELP - Show this help');
-          playBeep();
         } else if (command === 'CLEAR') {
           terminalOutput.innerHTML = '';
         } else if (command) {
@@ -670,36 +654,22 @@
       }
     });
 
-    // JSON Import functionality
-    document.getElementById('json-input').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const jsonData = JSON.parse(event.target.result);
-            addLine('');
-            addLine('JSON DATA IMPORTED SUCCESSFULLY', false, true);
-            addLine(`Records loaded: ${jsonData.length || 'N/A'}`);
-            playBeep();
-          } catch (error) {
-            addLine('ERROR: INVALID JSON FORMAT', true);
-            playError();
-          }
-        };
-        reader.readAsText(file);
-      }
-    });
-
     // THREE.JS GLOBE SETUP
     const globeCanvas = document.getElementById('globeCanvas');
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, globeCanvas.offsetWidth / globeCanvas.offsetHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ canvas: globeCanvas, antialias: true });
-    renderer.setSize(globeCanvas.offsetWidth, globeCanvas.offsetHeight);
+
+    function resizeGlobe() {
+      const width = globeCanvas.clientWidth;
+      const height = globeCanvas.clientHeight;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+
     renderer.setClearColor(0x000000);
 
-    // Create wireframe sphere
     const radius = 2;
     const segments = 32;
     const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
@@ -713,7 +683,6 @@
     const globe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
     scene.add(globe);
 
-    // Add country markers on globe
     Object.entries(countries).forEach(([name, coords]) => {
       const phi = (90 - coords.lat) * (Math.PI / 180);
       const theta = (coords.lon + 180) * (Math.PI / 180);
@@ -730,8 +699,8 @@
     });
 
     camera.position.z = 5;
+    resizeGlobe();
 
-    // Missile trajectories on globe
     function createGlobeMissileArc(source, target, progress) {
       const phi1 = (90 - source.lat) * (Math.PI / 180);
       const theta1 = (source.lon + 180) * (Math.PI / 180);
@@ -754,7 +723,7 @@
 
       if (points.length > 1) {
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const material = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
+        const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
         return new THREE.Line(geometry, material);
       }
       return null;
@@ -763,16 +732,13 @@
     function animateGlobe() {
       requestAnimationFrame(animateGlobe);
 
-      // Slow rotation for that 80s feel
       globe.rotation.y += 0.003;
       globe.rotation.x += 0.001;
 
-      // Clear old missile trajectories
       scene.children = scene.children.filter(child => 
         child === globe || child.geometry instanceof THREE.SphereGeometry
       );
 
-      // Draw active missiles
       missiles.forEach(missile => {
         if (missile.active) {
           missile.progress += 0.005;
@@ -790,25 +756,23 @@
 
     animateGlobe();
 
-    // 2D MAP WITH GEOJSON DATA
+    // 2D MAP
     const mapCanvas = document.getElementById('mapCanvas');
     const mapCtx = mapCanvas.getContext('2d');
 
     function resizeMap() {
-      mapCanvas.width = mapCanvas.offsetWidth;
-      mapCanvas.height = mapCanvas.offsetHeight;
+      mapCanvas.width = mapCanvas.clientWidth;
+      mapCanvas.height = mapCanvas.clientHeight;
     }
+    
     resizeMap();
-    window.addEventListener('resize', resizeMap);
 
-    // Convert lat/lon to canvas coordinates
     function projectToCanvas(lon, lat) {
       const x = ((lon + 180) / 360) * mapCanvas.width;
       const y = ((90 - lat) / 180) * mapCanvas.height;
       return { x, y };
     }
 
-    // Draw countries from GeoJSON
     function drawWorldMap() {
       if (!geoData) return;
 
@@ -892,7 +856,6 @@
       mapCtx.stroke();
       mapCtx.setLineDash([]);
 
-      // Draw missile position
       if (progress < 1) {
         const currentX = source.x + dx * progress;
         const currentY = source.y + dy * progress - Math.sin(progress * Math.PI) * arcHeight;
@@ -914,21 +877,18 @@
       mapCtx.shadowBlur = 20;
       mapCtx.shadowColor = '#ff0000';
 
-      // Outer ring
       mapCtx.strokeStyle = `rgba(255, 0, 0, ${opacity})`;
       mapCtx.lineWidth = 3;
       mapCtx.beginPath();
       mapCtx.arc(x, y, radius, 0, Math.PI * 2);
       mapCtx.stroke();
 
-      // Inner ring
       mapCtx.strokeStyle = `rgba(255, 255, 0, ${opacity})`;
       mapCtx.lineWidth = 2;
       mapCtx.beginPath();
       mapCtx.arc(x, y, radius * 0.6, 0, Math.PI * 2);
       mapCtx.stroke();
 
-      // Center flash
       mapCtx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
       mapCtx.beginPath();
       mapCtx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
@@ -963,11 +923,8 @@
 
     animateMap();
 
-    // Handle window resize
     window.addEventListener('resize', () => {
-      camera.aspect = globeCanvas.offsetWidth / globeCanvas.offsetHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(globeCanvas.offsetWidth, globeCanvas.offsetHeight);
+      resizeGlobe();
       resizeMap();
     });
   </script>
