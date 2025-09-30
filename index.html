@@ -1,755 +1,813 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NORAD COMMAND - WOPR SYSTEM</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>WOPR // Channel Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root{
+      --phosphor:#33ff33;
+      --phosphor-soft:#2fe12f;
+      --grid:#2fa62f;
+      --bg:#0a0a0a;
+      --warn:#ffff33;
+      --error:#ff3333;
+    }
+    body {
+      background: var(--bg);
+      font-family: 'VT323', monospace;
+      color: var(--phosphor);
+      overflow: hidden;
+      font-size: 18px;
+      text-shadow: 0 0 3px var(--phosphor);
+    }
 
-        body {
-            background: #000a00;
-            font-family: 'Courier New', monospace;
-            color: #33ff33;
-            overflow: hidden;
-            letter-spacing: 1px;
-        }
+    .scanlines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      z-index: 1000;
+      animation: scan 8s linear infinite;
+    }
 
-        .scanlines {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0.15),
-                rgba(0, 0, 0, 0.15) 1px,
-                transparent 1px,
-                transparent 2px
-            );
-            pointer-events: none;
-            z-index: 1000;
-            animation: scan 8s linear infinite;
-        }
+    @keyframes scan {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(10px); }
+    }
 
-        @keyframes scan {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(10px); }
-        }
+    #header, #footer {
+      position: absolute; 
+      left: 0; 
+      right: 0;
+      padding: 12px 20px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items:center;
+      text-shadow: 0 0 8px var(--phosphor), 0 0 15px var(--phosphor);
+      z-index: 100; 
+      background: rgba(10, 10, 10, 0.95);
+      border-bottom: 2px solid var(--phosphor);
+      font-size: 20px;
+      letter-spacing: 2px;
+    }
+    
+    #footer{ 
+      bottom:0; 
+      top:auto; 
+      border-bottom:none; 
+      border-top: 2px solid var(--phosphor); 
+    }
+    
+    #header{ 
+      top:0; 
+      gap:16px 
+    }
 
-        .header {
-            background: #001a00;
-            border-bottom: 2px solid #33ff33;
-            padding: 10px 20px;
-            text-align: center;
-            text-shadow: 0 0 10px #33ff33, 0 0 20px #33ff33;
-            font-size: 24px;
-            font-weight: bold;
-        }
+    .controls {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
 
-        .main-container {
-            display: flex;
-            height: calc(100vh - 100px);
-        }
+    .badge {
+      background: var(--phosphor);
+      color: var(--bg);
+      padding: 4px 12px;
+      cursor: pointer;
+      border: 1px solid var(--phosphor);
+      text-shadow: none;
+      transition: all 0.2s;
+    }
 
-        .terminal-section {
-            flex: 1;
-            padding: 20px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            border-right: 2px solid #33ff33;
-            background: rgba(0, 10, 0, 0.5);
-        }
+    .badge:hover {
+      background: var(--bg);
+      color: var(--phosphor);
+      box-shadow: 0 0 15px var(--phosphor);
+    }
 
-        .status-display {
-            border: 2px solid #33ff33;
-            padding: 15px;
-            margin-bottom: 20px;
-            background: rgba(0, 26, 0, 0.8);
-            box-shadow: inset 0 0 20px rgba(51, 255, 51, 0.2);
-        }
+    #connection-status {
+      color: var(--warn);
+      text-shadow: 0 0 8px var(--warn);
+    }
 
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            text-shadow: 0 0 5px #33ff33, 0 0 10px #33ff33;
-        }
+    #connection-status.active {
+      color: var(--phosphor);
+      text-shadow: 0 0 8px var(--phosphor);
+      animation: pulse 2s infinite;
+    }
 
-        .defcon-1 { color: #ff0000; text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; }
-        .defcon-2 { color: #ff6600; text-shadow: 0 0 10px #ff6600; }
-        .defcon-3 { color: #ffff00; text-shadow: 0 0 10px #ffff00; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
 
-        .terminal-output {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-            font-size: 14px;
-            line-height: 1.4;
-            border: 1px solid #33ff33;
-            background: rgba(0, 10, 0, 0.9);
-            box-shadow: inset 0 0 20px rgba(51, 255, 51, 0.1);
-        }
+    #main-container {
+      position: absolute;
+      top: 60px;
+      bottom: 60px;
+      left: 0;
+      right: 0;
+      display: flex;
+    }
 
-        .terminal-output::-webkit-scrollbar {
-            width: 10px;
-        }
+    #terminal-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 2px solid var(--phosphor);
+      background: rgba(10, 10, 10, 0.5);
+    }
 
-        .terminal-output::-webkit-scrollbar-track {
-            background: #001a00;
-        }
+    #term-handle {
+      padding: 10px 20px;
+      background: rgba(51, 255, 51, 0.1);
+      border-bottom: 1px solid var(--phosphor);
+      text-align: center;
+      font-size: 20px;
+      letter-spacing: 3px;
+      text-shadow: 0 0 8px var(--phosphor);
+    }
 
-        .terminal-output::-webkit-scrollbar-thumb {
-            background: #33ff33;
-            box-shadow: 0 0 10px #33ff33;
-        }
+    #terminal-output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      font-size: 16px;
+      line-height: 1.4;
+    }
 
-        .terminal-line {
-            text-shadow: 0 0 5px #33ff33, 0 0 10px #33ff33;
-            margin: 3px 0;
-        }
+    #terminal-output::-webkit-scrollbar {
+      width: 10px;
+    }
 
-        .input-line {
-            display: flex;
-            align-items: center;
-            margin-top: 10px;
-            padding: 10px;
-            background: rgba(0, 26, 0, 0.8);
-            border: 1px solid #33ff33;
-        }
+    #terminal-output::-webkit-scrollbar-track {
+      background: rgba(0, 26, 0, 0.5);
+    }
 
-        .prompt {
-            margin-right: 10px;
-            text-shadow: 0 0 5px #33ff33, 0 0 10px #33ff33;
-        }
+    #terminal-output::-webkit-scrollbar-thumb {
+      background: var(--phosphor);
+      box-shadow: 0 0 10px var(--phosphor);
+    }
 
-        #commandInput {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #33ff33;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            outline: none;
-            text-shadow: 0 0 5px #33ff33;
-            letter-spacing: 1px;
-        }
+    .terminal-line {
+      text-shadow: 0 0 5px var(--phosphor);
+      margin: 3px 0;
+    }
 
-        .cursor {
-            display: inline-block;
-            width: 10px;
-            height: 16px;
-            background: #33ff33;
-            animation: blink 1s infinite;
-            box-shadow: 0 0 10px #33ff33;
-        }
+    .alert {
+      color: var(--error);
+      text-shadow: 0 0 10px var(--error), 0 0 20px var(--error);
+      animation: blink-alert 0.5s infinite;
+    }
 
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-        }
+    @keyframes blink-alert {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
 
-        .display-section {
-            flex: 1.5;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-        }
+    .loading {
+      color: var(--warn);
+      text-shadow: 0 0 10px var(--warn);
+    }
 
-        .globe-container {
-            flex: 1;
-            position: relative;
-            border: 2px solid #33ff33;
-            background: #000000;
-            box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.2);
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
+    #input-line {
+      display: flex;
+      align-items: center;
+      padding: 15px 20px;
+      background: rgba(0, 26, 0, 0.8);
+      border-top: 1px solid var(--phosphor);
+    }
 
-        .map-container {
-            flex: 1;
-            position: relative;
-            border: 2px solid #33ff33;
-            background: rgba(0, 10, 0, 0.9);
-            box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.2);
-            overflow: hidden;
-        }
+    #prompt {
+      margin-right: 10px;
+      text-shadow: 0 0 5px var(--phosphor);
+      font-size: 20px;
+    }
 
-        canvas {
-            width: 100%;
-            height: 100%;
-        }
+    #command-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--phosphor);
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      outline: none;
+      text-shadow: 0 0 5px var(--phosphor);
+      letter-spacing: 2px;
+    }
 
-        .footer {
-            background: #001a00;
-            border-top: 2px solid #33ff33;
-            padding: 10px 20px;
-            text-align: center;
-            text-shadow: 0 0 10px #33ff33;
-            font-size: 12px;
-        }
+    #command-input::placeholder {
+      color: var(--grid);
+      opacity: 0.6;
+    }
 
-        .alert {
-            color: #ff0000;
-            text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
-            animation: pulse 0.5s infinite;
-        }
+    .cursor {
+      display: inline-block;
+      width: 12px;
+      height: 20px;
+      background: var(--phosphor);
+      animation: blink 1s infinite;
+      box-shadow: 0 0 10px var(--phosphor);
+      margin-left: 5px;
+    }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
 
-        .loading {
-            color: #ffff00;
-            text-shadow: 0 0 10px #ffff00;
-        }
-    </style>
+    .display-section {
+      flex: 1.5;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .globe-container {
+      flex: 1;
+      position: relative;
+      border: 2px solid var(--phosphor);
+      background: #000000;
+      box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.2);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .map-container {
+      flex: 1;
+      position: relative;
+      border: 2px solid var(--phosphor);
+      background: rgba(10, 10, 10, 0.9);
+      box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.2);
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    #defcon {
+      font-weight: bold;
+    }
+
+    #defcon.defcon-1 { 
+      color: var(--error); 
+      text-shadow: 0 0 10px var(--error), 0 0 20px var(--error); 
+      animation: blink-alert 0.3s infinite;
+    }
+    
+    #defcon.defcon-2 { 
+      color: #ff6600; 
+      text-shadow: 0 0 10px #ff6600; 
+    }
+    
+    #defcon.defcon-3 { 
+      color: var(--warn); 
+      text-shadow: 0 0 10px var(--warn); 
+    }
+  </style>
 </head>
 <body>
-    <div class="scanlines"></div>
-    
-    <div class="header">
-        ═══ NORAD COMMAND CENTER - WAR OPERATION PLAN RESPONSE ═══
+  <div class="scanlines"></div>
+  
+  <div id="header">
+    <div>W.O.P.R // CHANNEL OPERATIONS</div>
+    <div class="controls">
+      CONNECTION: <span id="connection-status">STANDBY</span>
+      <label class="badge" for="json-input">IMPORT JSON</label>
+      <input id="json-input" type="file" accept="application/json" style="display:none" />
     </div>
+  </div>
 
-    <div class="main-container">
-        <div class="terminal-section">
-            <div class="status-display">
-                <div class="status-row">
-                    <span>SYSTEM STATUS:</span>
-                    <span id="systemStatus">LOADING</span>
-                </div>
-                <div class="status-row">
-                    <span>DEFCON LEVEL:</span>
-                    <span id="defconLevel" class="defcon-3">3</span>
-                </div>
-                <div class="status-row">
-                    <span>MISSILES LAUNCHED:</span>
-                    <span id="missileCount">0</span>
-                </div>
-                <div class="status-row">
-                    <span>GAME STATUS:</span>
-                    <span id="gameStatus">AWAITING INPUT</span>
-                </div>
-            </div>
+  <div id="main-container">
+    <section id="terminal-section">
+      <div id="term-handle">WOPR CONSOLE</div>
+      <div id="terminal-output" role="log" aria-live="polite" aria-atomic="false"></div>
+      <div id="input-line">
+        <span id="prompt">&gt;</span>
+        <input type="text" id="command-input" placeholder="Type HELP for commands" />
+        <span class="cursor"></span>
+      </div>
+    </section>
 
-            <div class="terminal-output" id="terminalOutput">
-                <div class="terminal-line">WOPR SYSTEM v2.1.4</div>
-                <div class="terminal-line">CONNECTING TO NORAD MAINFRAME...</div>
-                <div class="terminal-line loading">LOADING GEOGRAPHIC DATA...</div>
-            </div>
-
-            <div class="input-line">
-                <span class="prompt">WOPR></span>
-                <input type="text" id="commandInput" autofocus>
-                <span class="cursor"></span>
-            </div>
-        </div>
-
-        <div class="display-section">
-            <div class="globe-container">
-                <canvas id="globeCanvas"></canvas>
-            </div>
-            <div class="map-container">
-                <canvas id="mapCanvas"></canvas>
-            </div>
-        </div>
+    <div class="display-section">
+      <div class="globe-container">
+        <canvas id="globeCanvas"></canvas>
+      </div>
+      <div class="map-container">
+        <canvas id="mapCanvas"></canvas>
+      </div>
     </div>
+  </div>
 
-    <div class="footer">
-        CLASSIFIED - TOP SECRET - AUTHORIZED PERSONNEL ONLY
-    </div>
+  <div id="footer">
+    <div>NORAD // CHEYENNE MTN</div>
+    <div>TRACKS: <span id="track-count">0</span> | DEFCON: <span id="defcon">5</span></div>
+    <div>LAST INPUT: <span id="last-input">-</span></div>
+  </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-        // Game state
-        let gameActive = false;
-        let defconLevel = 3;
-        let missileCount = 0;
-        let missiles = [];
-        let mapMissiles = [];
-        let geoData = null;
-        let systemReady = false;
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Audio Context for sound effects
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-        // Country coordinates (lat, lon) for markers and targeting
-        const countries = {
-            USA: { lat: 39.8283, lon: -98.5795 },
-            RUSSIA: { lat: 61.5240, lon: 105.3188 },
-            CHINA: { lat: 35.8617, lon: 104.1954 },
-            UK: { lat: 55.3781, lon: -3.4360 },
-            FRANCE: { lat: 46.2276, lon: 2.2137 },
-            GERMANY: { lat: 51.1657, lon: 10.4515 },
-            INDIA: { lat: 20.5937, lon: 78.9629 },
-            JAPAN: { lat: 36.2048, lon: 138.2529 },
-            CANADA: { lat: 56.1304, lon: -106.3468 },
-            AUSTRALIA: { lat: -25.2744, lon: 133.7751 }
-        };
+    // Sound effect functions
+    function playDefconAlarm() {
+      const duration = 2;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, audioContext.currentTime);
+      osc.frequency.setValueAtTime(400, audioContext.currentTime + 0.25);
+      osc.frequency.setValueAtTime(800, audioContext.currentTime + 0.5);
+      osc.frequency.setValueAtTime(400, audioContext.currentTime + 0.75);
+      osc.frequency.setValueAtTime(800, audioContext.currentTime + 1);
+      osc.frequency.setValueAtTime(400, audioContext.currentTime + 1.25);
+      
+      gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+      
+      osc.start(audioContext.currentTime);
+      osc.stop(audioContext.currentTime + duration);
+    }
 
-        // Terminal functions
-        const terminalOutput = document.getElementById('terminalOutput');
-        const commandInput = document.getElementById('commandInput');
+    function playMissileLaunch() {
+      const duration = 1.5;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, audioContext.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + duration);
+      
+      gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+      
+      osc.start(audioContext.currentTime);
+      osc.stop(audioContext.currentTime + duration);
+    }
 
-        function addLine(text, isAlert = false, isLoading = false) {
-            const line = document.createElement('div');
-            line.className = 'terminal-line' + (isAlert ? ' alert' : '') + (isLoading ? ' loading' : '');
-            line.textContent = text;
-            terminalOutput.appendChild(line);
-            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    function playExplosion() {
+      const duration = 0.8;
+      const noise = audioContext.createBufferSource();
+      const buffer = audioContext.createBuffer(1, audioContext.sampleRate * duration, audioContext.sampleRate);
+      const data = buffer.getChannelData(0);
+      
+      for (let i = 0; i < buffer.length; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      
+      noise.buffer = buffer;
+      
+      const filter = audioContext.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1000, audioContext.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + duration);
+      
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+      
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioContext.destination);
+      
+      noise.start(audioContext.currentTime);
+    }
+
+    function playBeep() {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      
+      osc.type = 'sine';
+      osc.frequency.value = 1000;
+      
+      gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      osc.start(audioContext.currentTime);
+      osc.stop(audioContext.currentTime + 0.1);
+    }
+
+    function playError() {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      
+      osc.type = 'square';
+      osc.frequency.value = 200;
+      
+      gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      osc.start(audioContext.currentTime);
+      osc.stop(audioContext.currentTime + 0.3);
+    }
+
+    // Game state
+    let gameActive = false;
+    let defconLevel = 5;
+    let missileCount = 0;
+    let missiles = [];
+    let mapMissiles = [];
+    let geoData = null;
+    let systemReady = false;
+    let lastCommand = '-';
+
+    // Country coordinates (lat, lon) for markers and targeting
+    const countries = {
+      USA: { lat: 39.8283, lon: -98.5795 },
+      RUSSIA: { lat: 61.5240, lon: 105.3188 },
+      CHINA: { lat: 35.8617, lon: 104.1954 },
+      UK: { lat: 55.3781, lon: -3.4360 },
+      FRANCE: { lat: 46.2276, lon: 2.2137 },
+      GERMANY: { lat: 51.1657, lon: 10.4515 },
+      INDIA: { lat: 20.5937, lon: 78.9629 },
+      JAPAN: { lat: 36.2048, lon: 138.2529 },
+      CANADA: { lat: 56.1304, lon: -106.3468 },
+      AUSTRALIA: { lat: -25.2744, lon: 133.7751 }
+    };
+
+    // Terminal functions
+    const terminalOutput = document.getElementById('terminal-output');
+    const commandInput = document.getElementById('command-input');
+    const connectionStatus = document.getElementById('connection-status');
+    const defconDisplay = document.getElementById('defcon');
+    const trackCount = document.getElementById('track-count');
+    const lastInputDisplay = document.getElementById('last-input');
+
+    function addLine(text, isAlert = false, isLoading = false) {
+      const line = document.createElement('div');
+      line.className = 'terminal-line' + (isAlert ? ' alert' : '') + (isLoading ? ' loading' : '');
+      line.textContent = text;
+      terminalOutput.appendChild(line);
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+
+    function updateStatus() {
+      defconDisplay.textContent = defconLevel;
+      defconDisplay.className = 'defcon-' + defconLevel;
+      trackCount.textContent = missileCount;
+      lastInputDisplay.textContent = lastCommand;
+      connectionStatus.textContent = systemReady ? (gameActive ? 'ACTIVE' : 'ONLINE') : 'LOADING';
+      connectionStatus.className = (systemReady && gameActive) ? 'active' : '';
+    }
+
+    // Load GeoJSON data
+    fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+      .then(response => response.json())
+      .then(data => {
+        geoData = data;
+        addLine('GEOGRAPHIC DATA LOADED');
+        addLine('CONNECTION ESTABLISHED');
+        addLine('');
+        addLine('GREETINGS PROFESSOR FALKEN.');
+        addLine('');
+        addLine('SHALL WE PLAY A GAME?');
+        addLine('');
+        addLine('Type Y or YES to begin');
+        addLine('Type HELP for available commands');
+        addLine('');
+        systemReady = true;
+        updateStatus();
+        playBeep();
+      })
+      .catch(error => {
+        addLine('WARNING: GEOGRAPHIC DATA LOAD FAILED', true);
+        addLine('CONTINUING WITH BASIC DISPLAY...', true);
+        addLine('');
+        addLine('GREETINGS PROFESSOR FALKEN.');
+        addLine('');
+        addLine('SHALL WE PLAY A GAME?');
+        addLine('');
+        systemReady = true;
+        updateStatus();
+        playError();
+      });
+
+    function launchMissile(source, target) {
+      if (!countries[source] || !countries[target]) {
+        addLine('ERROR: INVALID COUNTRY CODE', true);
+        playError();
+        return;
+      }
+
+      missileCount++;
+      playMissileLaunch();
+      
+      addLine('');
+      addLine('█ MISSILE LAUNCH DETECTED █', true);
+      addLine(`SOURCE: ${source}`);
+      addLine(`TARGET: ${target}`);
+      addLine(`TRAJECTORY: ${source} → ${target}`);
+      addLine(`ESTIMATED TIME TO IMPACT: ${Math.floor(Math.random() * 10 + 15)} MINUTES`);
+
+      // Add to globe missiles
+      const sourceLoc = countries[source];
+      const targetLoc = countries[target];
+      missiles.push({
+        source: { lat: sourceLoc.lat, lon: sourceLoc.lon },
+        target: { lat: targetLoc.lat, lon: targetLoc.lon },
+        progress: 0,
+        active: true
+      });
+
+      // Add to map missiles (convert lat/lon to canvas coordinates)
+      const sourceX = ((sourceLoc.lon + 180) / 360) * mapCanvas.width;
+      const sourceY = ((90 - sourceLoc.lat) / 180) * mapCanvas.height;
+      const targetX = ((targetLoc.lon + 180) / 360) * mapCanvas.width;
+      const targetY = ((90 - targetLoc.lat) / 180) * mapCanvas.height;
+
+      mapMissiles.push({
+        source: { x: sourceX, y: sourceY },
+        target: { x: targetX, y: targetY },
+        progress: 0,
+        active: true,
+        explosion: null
+      });
+
+      // Update DEFCON
+      const oldDefcon = defconLevel;
+      if (missileCount > 5 && defconLevel > 1) {
+        defconLevel = 1;
+        addLine('');
+        addLine('!!! DEFCON 1 - MAXIMUM READINESS !!!', true);
+      } else if (missileCount > 2 && defconLevel > 2) {
+        defconLevel = 2;
+        addLine('');
+        addLine('!! DEFCON 2 - ARMED FORCES READY !!', true);
+      } else if (missileCount > 0 && defconLevel > 3) {
+        defconLevel = 3;
+        addLine('');
+        addLine('! DEFCON 3 - INCREASE READINESS !', true);
+      }
+
+      if (oldDefcon !== defconLevel) {
+        playDefconAlarm();
+      }
+
+      updateStatus();
+    }
+
+    // Command processor
+    commandInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const command = commandInput.value.trim().toUpperCase();
+        lastCommand = command || lastCommand;
+        addLine('> ' + command);
+        commandInput.value = '';
+        playBeep();
+
+        if (!systemReady) {
+          addLine('ERROR: SYSTEM INITIALIZING...', true);
+          playError();
+          return;
         }
 
-        function updateStatus() {
-            document.getElementById('defconLevel').textContent = defconLevel;
-            document.getElementById('defconLevel').className = 'defcon-' + defconLevel;
-            document.getElementById('missileCount').textContent = missileCount;
-            document.getElementById('gameStatus').textContent = gameActive ? 'ACTIVE' : 'STANDBY';
-            document.getElementById('systemStatus').textContent = systemReady ? 'ONLINE' : 'LOADING';
-        }
-
-        // Load GeoJSON data
-        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
-            .then(response => response.json())
-            .then(data => {
-                geoData = data;
-                addLine('GEOGRAPHIC DATA LOADED');
-                addLine('CONNECTION ESTABLISHED');
-                addLine('');
-                addLine('GREETINGS PROFESSOR FALKEN.');
-                addLine('');
-                addLine('SHALL WE PLAY A GAME?');
-                addLine('');
-                addLine('Type Y or YES to begin');
-                addLine('Type HELP for available commands');
-                addLine('');
-                systemReady = true;
-                updateStatus();
-            })
-            .catch(error => {
-                addLine('WARNING: GEOGRAPHIC DATA LOAD FAILED', true);
-                addLine('CONTINUING WITH BASIC DISPLAY...', true);
-                addLine('');
-                addLine('GREETINGS PROFESSOR FALKEN.');
-                addLine('');
-                addLine('SHALL WE PLAY A GAME?');
-                addLine('');
-                systemReady = true;
-                updateStatus();
-            });
-
-        function launchMissile(source, target) {
-            if (!countries[source] || !countries[target]) {
-                addLine('ERROR: INVALID COUNTRY CODE', true);
-                return;
-            }
-
-            missileCount++;
+        if (command === 'Y' || command === 'YES') {
+          if (!gameActive) {
+            gameActive = true;
+            defconLevel = 5;
             addLine('');
-            addLine('█ MISSILE LAUNCH DETECTED █', true);
-            addLine(`SOURCE: ${source}`);
-            addLine(`TARGET: ${target}`);
-            addLine(`TRAJECTORY: ${source} → ${target}`);
-            addLine(`ESTIMATED TIME TO IMPACT: ${Math.floor(Math.random() * 10 + 15)} MINUTES`);
-
-            // Add to globe missiles
-            const sourceLoc = countries[source];
-            const targetLoc = countries[target];
-            missiles.push({
-                source: { lat: sourceLoc.lat, lon: sourceLoc.lon },
-                target: { lat: targetLoc.lat, lon: targetLoc.lon },
-                progress: 0,
-                active: true
-            });
-
-            // Add to map missiles (convert lat/lon to canvas coordinates)
-            const sourceX = ((sourceLoc.lon + 180) / 360) * mapCanvas.width;
-            const sourceY = ((90 - sourceLoc.lat) / 180) * mapCanvas.height;
-            const targetX = ((targetLoc.lon + 180) / 360) * mapCanvas.width;
-            const targetY = ((90 - targetLoc.lat) / 180) * mapCanvas.height;
-
-            mapMissiles.push({
-                source: { x: sourceX, y: sourceY },
-                target: { x: targetX, y: targetY },
-                progress: 0,
-                active: true,
-                explosion: null
-            });
-
-            // Update DEFCON
-            if (missileCount > 5 && defconLevel > 1) {
-                defconLevel = 1;
-                addLine('');
-                addLine('!!! DEFCON 1 - MAXIMUM READINESS !!!', true);
-            } else if (missileCount > 2 && defconLevel > 2) {
-                defconLevel = 2;
-                addLine('');
-                addLine('!! DEFCON 2 - ARMED FORCES READY !!', true);
-            }
-
+            addLine('INITIALIZING GLOBAL THERMONUCLEAR WAR...');
+            addLine('LOADING SCENARIO: WWIII');
+            addLine('');
+            addLine('SYSTEM READY. TYPE LAUNCH [SOURCE] [TARGET] TO FIRE');
+            addLine('TYPE LIST TO SEE AVAILABLE COUNTRIES');
             updateStatus();
-        }
-
-        // Command processor
-        commandInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const command = commandInput.value.trim().toUpperCase();
-                addLine('WOPR> ' + command);
-                commandInput.value = '';
-
-                if (!systemReady) {
-                    addLine('ERROR: SYSTEM INITIALIZING...', true);
-                    return;
-                }
-
-                if (command === 'Y' || command === 'YES') {
-                    if (!gameActive) {
-                        gameActive = true;
-                        addLine('');
-                        addLine('INITIALIZING GLOBAL THERMONUCLEAR WAR...');
-                        addLine('LOADING SCENARIO: WWIII');
-                        addLine('');
-                        addLine('SYSTEM READY. TYPE LAUNCH [SOURCE] [TARGET] TO FIRE');
-                        addLine('TYPE LIST TO SEE AVAILABLE COUNTRIES');
-                        updateStatus();
-                    } else {
-                        addLine('GAME ALREADY ACTIVE');
-                    }
-                } else if (command.startsWith('LAUNCH ')) {
-                    if (!gameActive) {
-                        addLine('ERROR: START GAME FIRST (TYPE Y)', true);
-                    } else {
-                        const parts = command.split(' ');
-                        if (parts.length === 3) {
-                            launchMissile(parts[1], parts[2]);
-                        } else {
-                            addLine('ERROR: USAGE: LAUNCH [SOURCE] [TARGET]', true);
-                        }
-                    }
-                } else if (command === 'LIST') {
-                    addLine('');
-                    addLine('AVAILABLE COUNTRIES:');
-                    Object.keys(countries).forEach(country => {
-                        addLine('  - ' + country);
-                    });
-                } else if (command === 'STATUS') {
-                    addLine('');
-                    addLine('SYSTEM STATUS REPORT:');
-                    addLine(`DEFCON LEVEL: ${defconLevel}`);
-                    addLine(`MISSILES LAUNCHED: ${missileCount}`);
-                    addLine(`GAME STATUS: ${gameActive ? 'ACTIVE' : 'STANDBY'}`);
-                    addLine(`SYSTEM: ${systemReady ? 'ONLINE' : 'LOADING'}`);
-                } else if (command.startsWith('DEFCON ')) {
-                    const level = parseInt(command.split(' ')[1]);
-                    if (level >= 1 && level <= 5) {
-                        defconLevel = level;
-                        addLine(`DEFCON LEVEL SET TO ${level}`);
-                        updateStatus();
-                    } else {
-                        addLine('ERROR: DEFCON LEVEL MUST BE 1-5', true);
-                    }
-                } else if (command === 'HELP') {
-                    addLine('');
-                    addLine('AVAILABLE COMMANDS:');
-                    addLine('  Y or YES - Start the game');
-                    addLine('  LAUNCH [SOURCE] [TARGET] - Fire missile');
-                    addLine('  LIST - Show available countries');
-                    addLine('  STATUS - Display system status');
-                    addLine('  DEFCON [1-5] - Change DEFCON level');
-                    addLine('  CLEAR - Clear terminal');
-                    addLine('  HELP - Show this help');
-                } else if (command === 'CLEAR') {
-                    terminalOutput.innerHTML = '';
-                } else if (command) {
-                    addLine('UNKNOWN COMMAND. TYPE HELP FOR AVAILABLE COMMANDS', true);
-                }
-
-                addLine('');
+            playBeep();
+          } else {
+            addLine('GAME ALREADY ACTIVE');
+          }
+        } else if (command.startsWith('LAUNCH ')) {
+          if (!gameActive) {
+            addLine('ERROR: START GAME FIRST (TYPE Y)', true);
+            playError();
+          } else {
+            const parts = command.split(' ');
+            if (parts.length === 3) {
+              launchMissile(parts[1], parts[2]);
+            } else {
+              addLine('ERROR: USAGE: LAUNCH [SOURCE] [TARGET]', true);
+              playError();
             }
-        });
-
-        // THREE.JS GLOBE SETUP (Using your retro globe code!)
-        const globeCanvas = document.getElementById('globeCanvas');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, globeCanvas.offsetWidth / globeCanvas.offsetHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: globeCanvas, antialias: true });
-        renderer.setSize(globeCanvas.offsetWidth, globeCanvas.offsetHeight);
-        renderer.setClearColor(0x000000);
-
-        // Create wireframe sphere (your retro style!)
-        const radius = 2;
-        const segments = 32;
-        const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
-        const wireframeMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ff00,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.8
-        });
-        
-        const globe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
-        scene.add(globe);
-
-        // Add country markers on globe
-        Object.entries(countries).forEach(([name, coords]) => {
-            const phi = (90 - coords.lat) * (Math.PI / 180);
-            const theta = (coords.lon + 180) * (Math.PI / 180);
-
-            const x = -radius * Math.sin(phi) * Math.cos(theta);
-            const y = radius * Math.cos(phi);
-            const z = radius * Math.sin(phi) * Math.sin(theta);
-
-            const markerGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-            const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-            marker.position.set(x, y, z);
-            scene.add(marker);
-        });
-
-        camera.position.z = 5;
-
-        // Missile trajectories on globe
-        function createGlobeMissileArc(source, target, progress) {
-            const phi1 = (90 - source.lat) * (Math.PI / 180);
-            const theta1 = (source.lon + 180) * (Math.PI / 180);
-            const phi2 = (90 - target.lat) * (Math.PI / 180);
-            const theta2 = (target.lon + 180) * (Math.PI / 180);
-
-            const points = [];
-            for (let i = 0; i <= progress * 50; i++) {
-                const t = i / 50;
-                const phi = phi1 + (phi2 - phi1) * t;
-                const theta = theta1 + (theta2 - theta1) * t;
-                const altitude = Math.sin(t * Math.PI) * 1;
-
-                const x = -(radius + altitude) * Math.sin(phi) * Math.cos(theta);
-                const y = (radius + altitude) * Math.cos(phi);
-                const z = (radius + altitude) * Math.sin(phi) * Math.sin(theta);
-
-                points.push(new THREE.Vector3(x, y, z));
+          }
+        } else if (command === 'LIST') {
+          addLine('');
+          addLine('AVAILABLE COUNTRIES:');
+          Object.keys(countries).forEach(country => {
+            addLine('  - ' + country);
+          });
+          playBeep();
+        } else if (command === 'STATUS') {
+          addLine('');
+          addLine('SYSTEM STATUS REPORT:');
+          addLine(`DEFCON LEVEL: ${defconLevel}`);
+          addLine(`MISSILES LAUNCHED: ${missileCount}`);
+          addLine(`GAME STATUS: ${gameActive ? 'ACTIVE' : 'STANDBY'}`);
+          addLine(`SYSTEM: ${systemReady ? 'ONLINE' : 'LOADING'}`);
+          playBeep();
+        } else if (command.startsWith('DEFCON ')) {
+          const level = parseInt(command.split(' ')[1]);
+          if (level >= 1 && level <= 5) {
+            const oldDefcon = defconLevel;
+            defconLevel = level;
+            addLine(`DEFCON LEVEL SET TO ${level}`);
+            if (oldDefcon !== defconLevel && defconLevel <= 2) {
+              playDefconAlarm();
             }
-
-            if (points.length > 1) {
-                const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                const material = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
-                return new THREE.Line(geometry, material);
-            }
-            return null;
+            updateStatus();
+          } else {
+            addLine('ERROR: DEFCON LEVEL MUST BE 1-5', true);
+            playError();
+          }
+        } else if (command === 'HELP') {
+          addLine('');
+          addLine('AVAILABLE COMMANDS:');
+          addLine('  Y or YES - Start the game');
+          addLine('  LAUNCH [SOURCE] [TARGET] - Fire missile');
+          addLine('  LIST - Show available countries');
+          addLine('  STATUS - Display system status');
+          addLine('  DEFCON [1-5] - Change DEFCON level');
+          addLine('  CLEAR - Clear terminal');
+          addLine('  HELP - Show this help');
+          playBeep();
+        } else if (command === 'CLEAR') {
+          terminalOutput.innerHTML = '';
+        } else if (command) {
+          addLine('UNKNOWN COMMAND. TYPE HELP FOR AVAILABLE COMMANDS', true);
+          playError();
         }
 
-        function animateGlobe() {
-            requestAnimationFrame(animateGlobe);
+        addLine('');
+        updateStatus();
+      }
+    });
 
-            // Slow rotation for that 80s feel (your code!)
-            globe.rotation.y += 0.003;
-            globe.rotation.x += 0.001;
+    // JSON Import functionality
+    document.getElementById('json-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const jsonData = JSON.parse(event.target.result);
+            addLine('');
+            addLine('JSON DATA IMPORTED SUCCESSFULLY', false, true);
+            addLine(`Records loaded: ${jsonData.length || 'N/A'}`);
+            playBeep();
+          } catch (error) {
+            addLine('ERROR: INVALID JSON FORMAT', true);
+            playError();
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
 
-            // Clear old missile trajectories
-            scene.children = scene.children.filter(child => 
-                child === globe || child.geometry instanceof THREE.SphereGeometry
-            );
+    // THREE.JS GLOBE SETUP
+    const globeCanvas = document.getElementById('globeCanvas');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, globeCanvas.offsetWidth / globeCanvas.offsetHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: globeCanvas, antialias: true });
+    renderer.setSize(globeCanvas.offsetWidth, globeCanvas.offsetHeight);
+    renderer.setClearColor(0x000000);
 
-            // Draw active missiles
-            missiles.forEach(missile => {
-                if (missile.active) {
-                    missile.progress += 0.005;
-                    if (missile.progress >= 1) {
-                        missile.active = false;
-                    } else {
-                        const arc = createGlobeMissileArc(missile.source, missile.target, missile.progress);
-                        if (arc) scene.add(arc);
-                    }
-                }
-            });
+    // Create wireframe sphere
+    const radius = 2;
+    const segments = 32;
+    const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
+    const wireframeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.8
+    });
+    
+    const globe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
+    scene.add(globe);
 
-            renderer.render(scene, camera);
+    // Add country markers on globe
+    Object.entries(countries).forEach(([name, coords]) => {
+      const phi = (90 - coords.lat) * (Math.PI / 180);
+      const theta = (coords.lon + 180) * (Math.PI / 180);
+
+      const x = -radius * Math.sin(phi) * Math.cos(theta);
+      const y = radius * Math.cos(phi);
+      const z = radius * Math.sin(phi) * Math.sin(theta);
+
+      const markerGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+      const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+      marker.position.set(x, y, z);
+      scene.add(marker);
+    });
+
+    camera.position.z = 5;
+
+    // Missile trajectories on globe
+    function createGlobeMissileArc(source, target, progress) {
+      const phi1 = (90 - source.lat) * (Math.PI / 180);
+      const theta1 = (source.lon + 180) * (Math.PI / 180);
+      const phi2 = (90 - target.lat) * (Math.PI / 180);
+      const theta2 = (target.lon + 180) * (Math.PI / 180);
+
+      const points = [];
+      for (let i = 0; i <= progress * 50; i++) {
+        const t = i / 50;
+        const phi = phi1 + (phi2 - phi1) * t;
+        const theta = theta1 + (theta2 - theta1) * t;
+        const altitude = Math.sin(t * Math.PI) * 1;
+
+        const x = -(radius + altitude) * Math.sin(phi) * Math.cos(theta);
+        const y = (radius + altitude) * Math.cos(phi);
+        const z = (radius + altitude) * Math.sin(phi) * Math.sin(theta);
+
+        points.push(new THREE.Vector3(x, y, z));
+      }
+
+      if (points.length > 1) {
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
+        return new THREE.Line(geometry, material);
+      }
+      return null;
+    }
+
+    function animateGlobe() {
+      requestAnimationFrame(animateGlobe);
+
+      // Slow rotation for that 80s feel
+      globe.rotation.y += 0.003;
+      globe.rotation.x += 0.001;
+
+      // Clear old missile trajectories
+      scene.children = scene.children.filter(child => 
+        child === globe || child.geometry instanceof THREE.SphereGeometry
+      );
+
+      // Draw active missiles
+      missiles.forEach(missile => {
+        if (missile.active) {
+          missile.progress += 0.005;
+          if (missile.progress >= 1) {
+            missile.active = false;
+          } else {
+            const arc = createGlobeMissileArc(missile.source, missile.target, missile.progress);
+            if (arc) scene.add(arc);
+          }
         }
+      });
 
-        animateGlobe();
+      renderer.render(scene, camera);
+    }
 
-        // 2D MAP WITH GEOJSON DATA
-        const mapCanvas = document.getElementById('mapCanvas');
-        const mapCtx = mapCanvas.getContext('2d');
+    animateGlobe();
 
-        function resizeMap() {
-            mapCanvas.width = mapCanvas.offsetWidth;
-            mapCanvas.height = mapCanvas.offsetHeight;
-        }
-        resizeMap();
-        window.addEventListener('resize', resizeMap);
+    // 2D MAP WITH GEOJSON DATA
+    const mapCanvas = document.getElementById('mapCanvas');
+    const mapCtx = mapCanvas.getContext('2d');
 
-        // Convert lat/lon to canvas coordinates
-        function projectToCanvas(lon, lat) {
-            const x = ((lon + 180) / 360) * mapCanvas.width;
-            const y = ((90 - lat) / 180) * mapCanvas.height;
-            return { x, y };
-        }
+    function resizeMap() {
+      mapCanvas.width = mapCanvas.offsetWidth;
+      mapCanvas.height = mapCanvas.offsetHeight;
+    }
+    resizeMap();
+    window.addEventListener('resize', resizeMap);
 
-        // Draw countries from GeoJSON
-        function drawWorldMap() {
-            if (!geoData) return;
+    // Convert lat/lon to canvas coordinates
+    function projectToCanvas(lon, lat) {
+      const x = ((lon + 180) / 360) * mapCanvas.width;
+      const y = ((90 - lat) / 180) * mapCanvas.height;
+      return { x, y };
+    }
 
-            mapCtx.strokeStyle = '#33ff33';
-            mapCtx.lineWidth = 1;
-            mapCtx.shadowBlur = 5;
-            mapCtx.shadowColor = '#33ff33';
-
-            geoData.features.forEach(feature => {
-                const geometry = feature.geometry;
-                
-                if (geometry.type === 'Polygon') {
-                    drawPolygon(geometry.coordinates);
-                } else if (geometry.type === 'MultiPolygon') {
-                    geometry.coordinates.forEach(polygon => {
-                        drawPolygon(polygon);
-                    });
-                }
-            });
-        }
-
-        function drawPolygon(coordinates) {
-            coordinates.forEach(ring => {
-                mapCtx.beginPath();
-                ring.forEach((coord, index) => {
-                    const point = projectToCanvas(coord[0], coord[1]);
-                    if (index === 0) {
-                        mapCtx.moveTo(point.x, point.y);
-                    } else {
-                        mapCtx.lineTo(point.x, point.y);
-                    }
-                });
-                mapCtx.closePath();
-                mapCtx.stroke();
-            });
-        }
-
-        function drawCountryMarkers() {
-            mapCtx.fillStyle = '#ff0000';
-            mapCtx.shadowBlur = 8;
-            mapCtx.shadowColor = '#ff0000';
-
-            Object.entries(countries).forEach(([name, coords]) => {
-                const point = projectToCanvas(coords.lon, coords.lat);
-                
-                mapCtx.beginPath();
-                mapCtx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-                mapCtx.fill();
-
-                mapCtx.fillStyle = '#33ff33';
-                mapCtx.shadowBlur = 5;
-                mapCtx.shadowColor = '#33ff33';
-                mapCtx.font = '11px Courier New';
-                mapCtx.fillText(name, point.x + 8, point.y + 4);
-                mapCtx.fillStyle = '#ff0000';
-                mapCtx.shadowBlur = 8;
-                mapCtx.shadowColor = '#ff0000';
-            });
-        }
-
-        function drawMissileTrajectory(source, target, progress) {
-            const dx = target.x - source.x;
-            const dy = target.y - source.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const arcHeight = distance * 0.3;
-
-            mapCtx.strokeStyle = '#ff0000';
-            mapCtx.lineWidth = 2;
-            mapCtx.shadowBlur = 10;
-            mapCtx.shadowColor = '#ff0000';
-            mapCtx.setLineDash([5, 5]);
-
-            mapCtx.beginPath();
-            mapCtx.moveTo(source.x, source.y);
-
-            for (let i = 0; i <= progress; i += 0.02) {
-                const x = source.x + dx * i;
-                const y = source.y + dy * i - Math.sin(i * Math.PI) * arcHeight;
-                mapCtx.lineTo(x, y);
-            }
-            mapCtx.stroke();
-            mapCtx.setLineDash([]);
-
-            // Draw missile position
-            if (progress < 1) {
-                const currentX = source.x + dx * progress;
-                const currentY = source.y + dy * progress - Math.sin(progress * Math.PI) * arcHeight;
-                
-                mapCtx.fillStyle = '#ffff00';
-                mapCtx.shadowBlur = 15;
-                mapCtx.shadowColor = '#ffff00';
-                mapCtx.beginPath();
-                mapCtx.arc(currentX, currentY, 3, 0, Math.PI * 2);
-                mapCtx.fill();
-            }
-        }
-
-        function drawExplosion(x, y, frame) {
-            const maxFrames = 30;
-            const radius = (frame / maxFrames) * 50;
-            const opacity = 1 - (frame / maxFrames);
-
-            mapCtx.shadowBlur = 20;
-            mapCtx.shadowColor = '#ff0000';
-
-            // Outer ring
-            mapCtx.strokeStyle = `rgba(255, 0, 0, ${opacity})`;
-            mapCtx.lineWidth = 3;
-            mapCtx.beginPath();
-            mapCtx.arc(x, y, radius, 0, Math.PI * 2);
-            mapCtx.stroke();
-
-            // Inner ring
-            mapCtx.strokeStyle = `rgba(255, 255, 0, ${opacity})`;
-            mapCtx.lineWidth = 2;
-            mapCtx.beginPath();
-            mapCtx.arc(x, y, radius * 0.6, 0, Math.PI * 2);
-            mapCtx.stroke();
-
-            // Center flash
-            mapCtx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-            mapCtx.beginPath();
-            mapCtx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
-            mapCtx.fill();
-        }
-
-        function animateMap() {
-            requestAnimationFrame(animateMap);
-
-            mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
-            
-            drawWorldMap();
-            drawCountryMarkers();
-
-            mapMissiles.forEach(missile => {
-                if (missile.active) {
-                    missile.progress += 0.008;
-                    
-                    if (missile.progress >= 1) {
-                        missile.active = false;
-                        missile.explosion = { frame: 0 };
-                    } else {
-                        drawMissileTrajectory(missile.source, missile.target, missile.progress);
-                    }
-                } else if (missile.explosion && missile.explosion.frame < 30) {
-                    drawExplosion(missile.target.x, missile.target.y, missile.explosion.frame);
-                    missile.explosion.frame++;
-                }
-            });
-        }
-
-        animateMap();
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            camera.aspect = globeCanvas.offsetWidth / globeCanvas.offsetHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(globeCanvas.offsetWidth, globeCanvas.offsetHeight);
-            resizeMap();
-        });
-    </script>
-</body>
-</html>
+    // Draw countries
