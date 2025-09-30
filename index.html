@@ -808,4 +808,168 @@
       return { x, y };
     }
 
-    // Draw countries
+    // Draw countries from GeoJSON
+    function drawWorldMap() {
+      if (!geoData) return;
+
+      mapCtx.strokeStyle = '#33ff33';
+      mapCtx.lineWidth = 1;
+      mapCtx.shadowBlur = 5;
+      mapCtx.shadowColor = '#33ff33';
+
+      geoData.features.forEach(feature => {
+        const geometry = feature.geometry;
+        
+        if (geometry.type === 'Polygon') {
+          drawPolygon(geometry.coordinates);
+        } else if (geometry.type === 'MultiPolygon') {
+          geometry.coordinates.forEach(polygon => {
+            drawPolygon(polygon);
+          });
+        }
+      });
+    }
+
+    function drawPolygon(coordinates) {
+      coordinates.forEach(ring => {
+        mapCtx.beginPath();
+        ring.forEach((coord, index) => {
+          const point = projectToCanvas(coord[0], coord[1]);
+          if (index === 0) {
+            mapCtx.moveTo(point.x, point.y);
+          } else {
+            mapCtx.lineTo(point.x, point.y);
+          }
+        });
+        mapCtx.closePath();
+        mapCtx.stroke();
+      });
+    }
+
+    function drawCountryMarkers() {
+      mapCtx.fillStyle = '#ff0000';
+      mapCtx.shadowBlur = 8;
+      mapCtx.shadowColor = '#ff0000';
+
+      Object.entries(countries).forEach(([name, coords]) => {
+        const point = projectToCanvas(coords.lon, coords.lat);
+        
+        mapCtx.beginPath();
+        mapCtx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        mapCtx.fill();
+
+        mapCtx.fillStyle = '#33ff33';
+        mapCtx.shadowBlur = 5;
+        mapCtx.shadowColor = '#33ff33';
+        mapCtx.font = '14px VT323';
+        mapCtx.fillText(name, point.x + 8, point.y + 4);
+        mapCtx.fillStyle = '#ff0000';
+        mapCtx.shadowBlur = 8;
+        mapCtx.shadowColor = '#ff0000';
+      });
+    }
+
+    function drawMissileTrajectory(source, target, progress) {
+      const dx = target.x - source.x;
+      const dy = target.y - source.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const arcHeight = distance * 0.3;
+
+      mapCtx.strokeStyle = '#ff0000';
+      mapCtx.lineWidth = 2;
+      mapCtx.shadowBlur = 10;
+      mapCtx.shadowColor = '#ff0000';
+      mapCtx.setLineDash([5, 5]);
+
+      mapCtx.beginPath();
+      mapCtx.moveTo(source.x, source.y);
+
+      for (let i = 0; i <= progress; i += 0.02) {
+        const x = source.x + dx * i;
+        const y = source.y + dy * i - Math.sin(i * Math.PI) * arcHeight;
+        mapCtx.lineTo(x, y);
+      }
+      mapCtx.stroke();
+      mapCtx.setLineDash([]);
+
+      // Draw missile position
+      if (progress < 1) {
+        const currentX = source.x + dx * progress;
+        const currentY = source.y + dy * progress - Math.sin(progress * Math.PI) * arcHeight;
+        
+        mapCtx.fillStyle = '#ffff00';
+        mapCtx.shadowBlur = 15;
+        mapCtx.shadowColor = '#ffff00';
+        mapCtx.beginPath();
+        mapCtx.arc(currentX, currentY, 3, 0, Math.PI * 2);
+        mapCtx.fill();
+      }
+    }
+
+    function drawExplosion(x, y, frame) {
+      const maxFrames = 30;
+      const radius = (frame / maxFrames) * 50;
+      const opacity = 1 - (frame / maxFrames);
+
+      mapCtx.shadowBlur = 20;
+      mapCtx.shadowColor = '#ff0000';
+
+      // Outer ring
+      mapCtx.strokeStyle = `rgba(255, 0, 0, ${opacity})`;
+      mapCtx.lineWidth = 3;
+      mapCtx.beginPath();
+      mapCtx.arc(x, y, radius, 0, Math.PI * 2);
+      mapCtx.stroke();
+
+      // Inner ring
+      mapCtx.strokeStyle = `rgba(255, 255, 0, ${opacity})`;
+      mapCtx.lineWidth = 2;
+      mapCtx.beginPath();
+      mapCtx.arc(x, y, radius * 0.6, 0, Math.PI * 2);
+      mapCtx.stroke();
+
+      // Center flash
+      mapCtx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+      mapCtx.beginPath();
+      mapCtx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
+      mapCtx.fill();
+    }
+
+    function animateMap() {
+      requestAnimationFrame(animateMap);
+
+      mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
+      
+      drawWorldMap();
+      drawCountryMarkers();
+
+      mapMissiles.forEach(missile => {
+        if (missile.active) {
+          missile.progress += 0.008;
+          
+          if (missile.progress >= 1) {
+            missile.active = false;
+            missile.explosion = { frame: 0 };
+            playExplosion();
+          } else {
+            drawMissileTrajectory(missile.source, missile.target, missile.progress);
+          }
+        } else if (missile.explosion && missile.explosion.frame < 30) {
+          drawExplosion(missile.target.x, missile.target.y, missile.explosion.frame);
+          missile.explosion.frame++;
+        }
+      });
+    }
+
+    animateMap();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = globeCanvas.offsetWidth / globeCanvas.offsetHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(globeCanvas.offsetWidth, globeCanvas.offsetHeight);
+      resizeMap();
+    });
+  </script>
+</body>
+</html>
