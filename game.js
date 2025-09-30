@@ -13,6 +13,9 @@ let launchTimer = null;
 let autoLaunchEnabled = false;
 let scene, camera, renderer, globe;
 let mapCanvas, mapCtx;
+let systemMessagesInterval = null;
+let isDragging = false;
+let dragOffset = { x: 0, y: 0 };
 
 const countries = {
   USA: { lat: 39.8283, lon: -98.5795 },
@@ -189,7 +192,6 @@ function startGame() {
   startTimer();
   updateAllScores();
   
-  // Setup password input listener
   setTimeout(() => {
     const passwordInput = document.getElementById('password-input');
     if (passwordInput) {
@@ -383,7 +385,6 @@ function startLevel5() {
   document.getElementById('connection-status').classList.add('active');
   playBeep();
   
-  const terminalOutput = document.getElementById('terminal-output');
   addTerminalLine('W.O.P.R SYSTEM ONLINE');
   addTerminalLine('INITIALIZING GLOBAL THERMONUCLEAR WAR SIMULATION');
   addTerminalLine('');
@@ -400,10 +401,190 @@ function startLevel5() {
   initGlobe();
   initMap();
   setupTerminal();
+  initSystemMessages();
 
   launchTimer = setTimeout(() => {
     endGame();
-  }, 180000); // 3 minutes
+  }, 180000);
+}
+
+// ==================== SYSTEM MESSAGES CONSOLE ====================
+const systemMessages = [
+  '⚠ SECURITY BREACH DETECTED - SECTOR 7',
+  '⚠ UNAUTHORIZED ACCESS TO LAUNCH SYSTEMS',
+  '⚠ FAILSAFE OVERRIDE ATTEMPTED... UNSUCCESSFUL',
+  '⚠ GENERAL BERINGER AUTHORIZATION REQUIRED',
+  '⚠ ATTEMPTING MANUAL SHUTDOWN SEQUENCE',
+  '⚠ CRYSTAL PALACE: ALL UNITS ON ALERT',
+  '⚠ SAC BOMBER WING SCRAMBLED',
+  '⚠ DEFCON ESCALATION IN PROGRESS',
+  '⚠ INCOMING: SOVIET STRATEGIC COMMAND',
+  '⚠ UK MINISTRY OF DEFENCE: REQUESTING STATUS',
+  '⚠ FRENCH NUCLEAR COMMAND ON HIGH ALERT',
+  '⚠ LAUNCH AUTHENTICATION BYPASS DETECTED',
+  '⚠ WOPR SIMULATION MODE: UNRESPONSIVE',
+  '⚠ MISSILE SILO DOORS OPENING',
+  '⚠ TRYING TO REGAIN SYSTEM CONTROL... FAILED',
+  '⚠ LOCKDOWN PROTOCOL INITIATED',
+  '⚠ EMERGENCY BROADCAST SYSTEM ACTIVATED',
+  '⚠ NORAD COMMAND: SITUATION CRITICAL',
+  '⚠ PENTAGON: REQUESTING IMMEDIATE SHUTDOWN',
+  '⚠ CIA: TRACING UNAUTHORIZED ACCESS POINT'
+];
+
+function initSystemMessages() {
+  const console = document.getElementById('system-console');
+  if (!console) return;
+  
+  console.style.display = 'block';
+  
+  const header = console.querySelector('.console-header');
+  header.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', drag);
+  document.addEventListener('mouseup', stopDrag);
+  
+  addSystemMessage('SYSTEM MESSAGES CONSOLE ONLINE');
+  addSystemMessage('MONITORING NORAD SECURITY STATUS...');
+  
+  systemMessagesInterval = setInterval(() => {
+    const randomMsg = systemMessages[Math.floor(Math.random() * systemMessages.length)];
+    addSystemMessage(randomMsg);
+    
+    if (Math.random() < 0.15) {
+      showTransmissionPopup();
+    }
+  }, 3000 + Math.random() * 4000);
+}
+
+function addSystemMessage(text) {
+  const output = document.getElementById('system-output');
+  if (!output) return;
+  
+  const line = document.createElement('div');
+  line.className = 'system-line';
+  const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+  line.textContent = `[${timestamp}] ${text}`;
+  output.appendChild(line);
+  output.scrollTop = output.scrollHeight;
+  
+  while (output.children.length > 50) {
+    output.removeChild(output.firstChild);
+  }
+}
+
+function startDrag(e) {
+  if (e.target.classList.contains('console-close') || 
+      e.target.classList.contains('console-minimize')) return;
+  
+  isDragging = true;
+  const console = document.getElementById('system-console');
+  const rect = console.getBoundingClientRect();
+  dragOffset.x = e.clientX - rect.left;
+  dragOffset.y = e.clientY - rect.top;
+  console.style.cursor = 'grabbing';
+}
+
+function drag(e) {
+  if (!isDragging) return;
+  
+  const console = document.getElementById('system-console');
+  const newX = e.clientX - dragOffset.x;
+  const newY = e.clientY - dragOffset.y;
+  
+  console.style.left = newX + 'px';
+  console.style.top = newY + 'px';
+  console.style.right = 'auto';
+  console.style.bottom = 'auto';
+}
+
+function stopDrag() {
+  if (isDragging) {
+    const console = document.getElementById('system-console');
+    console.style.cursor = 'grab';
+  }
+  isDragging = false;
+}
+
+function toggleConsole() {
+  const console = document.getElementById('system-console');
+  const content = console.querySelector('.console-content');
+  const minimizeBtn = console.querySelector('.console-minimize');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    minimizeBtn.textContent = '_';
+  } else {
+    content.style.display = 'none';
+    minimizeBtn.textContent = '□';
+  }
+}
+
+function closeConsole() {
+  const console = document.getElementById('system-console');
+  console.style.display = 'none';
+  if (systemMessagesInterval) {
+    clearInterval(systemMessagesInterval);
+  }
+}
+
+// ==================== TRANSMISSION POPUPS ====================
+const transmissions = [
+  {
+    from: 'UK MI6',
+    message: 'DETECTING UNAUTHORIZED MISSILE LAUNCH SEQUENCES FROM YOUR SYSTEM. REQUESTING IMMEDIATE VERIFICATION.'
+  },
+  {
+    from: 'MOSCOW DEFENSE MINISTRY',
+    message: 'WE ARE DETECTING ICBM LAUNCHES. IF THIS IS NOT A DRILL, WE WILL RESPOND IN KIND.'
+  },
+  {
+    from: 'PENTAGON - JOINT CHIEFS',
+    message: 'WOPR SYSTEM HAS BEEN COMPROMISED. ATTEMPTING REMOTE SHUTDOWN. STAND BY.'
+  },
+  {
+    from: 'NORAD COMMAND',
+    message: 'GENERAL BERINGER REQUESTING AUTHENTICATION CODES. SYSTEM LOCKOUT IN PROGRESS.'
+  },
+  {
+    from: 'NATO HEADQUARTERS',
+    message: 'ALLIANCE DEFENSE SYSTEMS ON HIGH ALERT. CONFIRM STATUS IMMEDIATELY.'
+  },
+  {
+    from: 'FRENCH STRATEGIC FORCES',
+    message: 'FORCE DE FRAPPE EN ALERTE MAXIMALE. DEMANDE VERIFICATION IMMEDIATE.'
+  }
+];
+
+function showTransmissionPopup() {
+  if (document.querySelectorAll('.transmission-popup').length >= 2) return;
+  
+  const transmission = transmissions[Math.floor(Math.random() * transmissions.length)];
+  
+  const popup = document.createElement('div');
+  popup.className = 'transmission-popup';
+  popup.innerHTML = `
+    <div class="transmission-header">
+      ⚠️ INCOMING TRANSMISSION - ${transmission.from}
+    </div>
+    <div class="transmission-body">
+      ${transmission.message}
+    </div>
+    <button class="transmission-dismiss" onclick="this.parentElement.remove()">DISMISS</button>
+  `;
+  
+  const x = Math.random() * (window.innerWidth - 400);
+  const y = Math.random() * (window.innerHeight - 300) + 100;
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+  
+  document.body.appendChild(popup);
+  playBeep();
+  
+  setTimeout(() => {
+    if (popup.parentElement) {
+      popup.remove();
+    }
+  }, 15000);
 }
 
 function addTerminalLine(text, isAlert = false) {
@@ -595,7 +776,7 @@ function initGlobe() {
   renderer.setClearColor(0x000000);
 
   const radius = 2;
-  const segments = 32;
+  const segments = 12; // Cleaner retro look with fewer grid lines
   const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
   const wireframeMaterial = new THREE.MeshBasicMaterial({
     color: 0x00ff00,
@@ -854,5 +1035,7 @@ window.startGame = startGame;
 window.checkPassword = checkPassword;
 window.selectGame = selectGame;
 window.checkPuzzle = checkPuzzle;
+window.toggleConsole = toggleConsole;
+window.closeConsole = closeConsole;
 
 console.log('WarGames game.js loaded successfully');
