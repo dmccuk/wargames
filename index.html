@@ -1,180 +1,521 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WOPR - Global Thermonuclear War (Retro Green)</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --phosphor: #3cff8f; /* retro green */
-      --bg: #050807;       /* deep CRT black */
-      --red: #ff4d4d;      /* alert */
-      --amber: #ffe08a;    /* ok */
-    }
-    *{margin:0; padding:0; box-sizing:border-box}
-    body{
-      background: var(--bg);
-      font-family: 'VT323', monospace;
-      color: var(--phosphor);
-      overflow: hidden; font-size: 20px; letter-spacing:.4px;
-    }
-    /* CRT scanlines + vignette */
-    body::before{content:""; position:fixed; inset:0; pointer-events:none; z-index:9999;
-      background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.12) 3px);
-      mix-blend-mode: multiply;}
-    body::after{content:""; position:fixed; inset:0; pointer-events:none; z-index:9998;
-      background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.55) 100%);}
-
-    #header, #footer{
-      position: absolute; left:0; right:0; padding:10px 20px; display:flex; justify-content:space-between; align-items:center;
-      text-shadow: 0 0 10px rgba(60,255,143,0.8), 0 0 20px rgba(60,255,143,0.4);
-      z-index: 100; border-bottom:1px solid rgba(60,255,143,0.35);
-    }
-    #footer{ bottom:0; top:auto; border-bottom:none; border-top:1px solid rgba(60,255,143,0.35); }
-
-    #main-container{ position:absolute; top:50px; bottom:50px; left:0; right:0; display:flex; gap:0; }
-
-    #terminal-section{ width:40%; border-right:1px solid rgba(60,255,143,0.35); display:flex; flex-direction:column; background: rgba(60,255,143,0.03); }
-    #terminal-output{ flex:1; overflow-y:auto; padding:20px; text-shadow: 0 0 8px rgba(60,255,143,0.6); }
-    #input-line{ padding:10px 20px; border-top:1px solid rgba(60,255,143,0.35); display:flex; align-items:center; gap:8px; }
-    #prompt{ margin-right:6px; opacity:0.9 }
-    #command-input{ flex:1; background:transparent; border:none; color:var(--phosphor); font-family:'VT323', monospace; font-size:20px; outline:none; text-shadow: 0 0 8px rgba(60,255,143,0.6); }
-    .cursor{ width:10px; height:20px; background: var(--phosphor); box-shadow:0 0 6px rgba(60,255,143,0.8); animation: blink 1s steps(1,end) infinite; }
-    @keyframes blink{ 50%{opacity:0.2} }
-    .output-line{ margin-bottom:6px; }
-    .error{ color: var(--red); text-shadow:0 0 10px rgba(255,77,77,0.6) }
-    .warning{ color: var(--amber); text-shadow:0 0 10px rgba(255,224,138,0.5) }
-
-    #globe-section{ flex:1; position:relative; background: rgba(60,255,143,0.02); }
-    #status-display{ position:absolute; bottom:16px; left:50%; transform:translateX(-50%); text-align:center; text-shadow: 0 0 8px rgba(60,255,143,0.6); z-index:10; }
-    .scan-line{ position:absolute; inset:0; pointer-events:none; background: linear-gradient(to bottom, transparent 50%, rgba(60,255,143,0.06) 51%); background-size:100% 4px; z-index:5; }
-
-    @media (max-width: 900px){ #terminal-section{ width:100%; } #main-container{ flex-direction:column; } #globe-section{ height:50%; } }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOPR - Global Thermonuclear War</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0a;
+            font-family: 'VT323', monospace;
+            color: #33ff33;
+            overflow: hidden;
+            font-size: 20px;
+            text-shadow: 0 0 5px #33ff33;
+        }
+        
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
+            border-bottom: 2px solid #33ff33;
+            display: flex;
+            justify-content: space-between;
+            text-shadow: 0 0 8px #33ff33, 0 0 15px #33ff33;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.9);
+        }
+        
+        #footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
+            border-top: 2px solid #33ff33;
+            display: flex;
+            justify-content: space-between;
+            text-shadow: 0 0 8px #33ff33, 0 0 15px #33ff33;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.9);
+        }
+        
+        #main-container {
+            position: absolute;
+            top: 50px;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            display: flex;
+        }
+        
+        #terminal-section {
+            width: 40%;
+            border-right: 2px solid #33ff33;
+            display: flex;
+            flex-direction: column;
+            background: rgba(5, 15, 5, 0.8);
+            box-shadow: inset 0 0 50px rgba(51, 255, 51, 0.1);
+        }
+        
+        #terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            text-shadow: 0 0 8px #33ff33;
+            letter-spacing: 1px;
+        }
+        
+        #terminal-output::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #terminal-output::-webkit-scrollbar-track {
+            background: #001100;
+            border-left: 1px solid #33ff33;
+        }
+        
+        #terminal-output::-webkit-scrollbar-thumb {
+            background: #33ff33;
+            box-shadow: 0 0 10px #33ff33;
+        }
+        
+        #input-line {
+            padding: 10px 20px;
+            border-top: 2px solid #33ff33;
+            display: flex;
+            align-items: center;
+            background: rgba(0, 20, 0, 0.5);
+        }
+        
+        #prompt {
+            margin-right: 10px;
+        }
+        
+        #command-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #33ff33;
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            outline: none;
+            text-shadow: 0 0 8px #33ff33;
+            letter-spacing: 1px;
+        }
+        
+        #globe-section {
+            flex: 1;
+            position: relative;
+        }
+        
+        #status-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            text-shadow: 0 0 10px #33ff33, 0 0 20px #33ff33;
+            z-index: 10;
+            background: rgba(10, 10, 10, 0.7);
+            padding: 10px 20px;
+            border: 2px solid #33ff33;
+        }
+        
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 50%,
+                rgba(51, 255, 51, 0.03) 51%
+            );
+            background-size: 100% 3px;
+            pointer-events: none;
+            z-index: 5;
+            animation: scan 8s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(3px); }
+        }
+        
+        .output-line {
+            margin-bottom: 5px;
+        }
+        
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background: #33ff33;
+            animation: blink 1s infinite;
+            box-shadow: 0 0 10px #33ff33;
+        }
+        
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        
+        .error {
+            color: #ff3333;
+            text-shadow: 0 0 8px #ff3333;
+        }
+        
+        .warning {
+            color: #ffff33;
+            text-shadow: 0 0 8px #ffff33;
+        }
+    </style>
 </head>
 <body>
-  <div id="header">
-    <div>W.O.P.R // GLOBAL THERMONUCLEAR WAR</div>
-    <div>CONNECTION: <span id="connection-status">SECURE LINK ESTABLISHED</span></div>
-  </div>
-
-  <div id="main-container">
-    <div id="terminal-section">
-      <div id="terminal-output"></div>
-      <div id="input-line"><span id="prompt">&gt;</span><input type="text" id="command-input" autocomplete="off" /><span class="cursor"></span></div>
+    <div id="header">
+        <div>W.O.P.R // GLOBAL THERMONUCLEAR WAR</div>
+        <div>CONNECTION: <span id="connection-status">SECURE LINK ESTABLISHED</span></div>
     </div>
-    <div id="globe-section">
-      <div class="scan-line"></div>
-      <div id="status-display">MODE: GLOBAL STRATEGY | TRACKS: <span id="track-count">0</span> | DEFCON: <span id="defcon">5</span></div>
+    
+    <div id="main-container">
+        <div id="terminal-section">
+            <div id="terminal-output"></div>
+            <div id="input-line">
+                <span id="prompt">&gt;</span>
+                <input type="text" id="command-input" autofocus>
+                <span class="cursor"></span>
+            </div>
+        </div>
+        
+        <div id="globe-section">
+            <div class="scan-line"></div>
+            <div id="status-display">
+                <div>MODE: GLOBAL STRATEGY | TRACKS: <span id="track-count">0</span> | DEFCON: <span id="defcon">5</span></div>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <div id="footer">
-    <div>NORAD // CHEYENNE MTN</div>
-    <div>SIM: <span id="sim-status">ACTIVE</span></div>
-    <div>LAST INPUT: <span id="last-input">—</span></div>
-  </div>
-
-  <!-- Three.js r128 (as in your code). If your network blocks CDN, grab this file locally. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
-  (function(){
-    // ------- Terminal helpers -------
-    const term = document.getElementById('terminal-output');
-    const input = document.getElementById('command-input');
-    const lastInput = document.getElementById('last-input');
-    const trackCountDisplay = document.getElementById('track-count');
-    const defconDisplay = document.getElementById('defcon');
-
-    function printLine(text, cls=''){ const div=document.createElement('div'); div.className = 'output-line ' + cls; div.textContent=text; term.appendChild(div); term.scrollTop = term.scrollHeight; }
-
-    // Boot text
-    const boot = [
-      'WOPR (WAR OPERATION PLAN RESPONSE)','', 'LOGON: JOSHUA','PASSWORD: ********','IDENTIFICATION NOT RECOGNIZED','OVERRIDE: LIST GAMES','', 'GAMES:','  BLACK JACK','  GIN RUMMY','  FIGHTER COMBAT','  GUERRILLA ENGAGEMENT','  DESERT WARFARE','  AIR-TO-GROUND ACTIONS','  THEATERWIDE TACTICAL WARFARE','  GLOBAL THERMONUCLEAR WAR','', 'SHALL WE PLAY A GAME? (Y/N)'
-    ];
-    (async()=>{ for (const l of boot){ await new Promise(r=>setTimeout(r,120)); printLine(l);} })();
-
-    // ------- Three.js Globe -------
-    const container = document.getElementById('globe-section');
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-    renderer.setClearColor(0x000000, 1);
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
-    container.appendChild(renderer.domElement);
-
-    const radius = 2;
-    const sphereGeo = new THREE.SphereGeometry(radius, 48, 32);
-    const wireMat = new THREE.MeshBasicMaterial({ color: 0x3cff8f, wireframe:true, transparent:true, opacity:0.85 });
-    const globe = new THREE.Mesh(sphereGeo, wireMat); scene.add(globe);
-
-    // Subtle phosphor halo
-    const glowGeo = new THREE.SphereGeometry(radius*1.05, 32, 18);
-    const glowMat = new THREE.MeshBasicMaterial({ color: 0x3cff8f, transparent:true, opacity:0.08, wireframe:false });
-    const glow = new THREE.Mesh(glowGeo, glowMat); scene.add(glow);
-
-    camera.position.set(0, 0.7, 5);
-
-    function size(){ const r = container.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix(); }
-    new ResizeObserver(size).observe(container); window.addEventListener('resize', size); size();
-
-    // Optional coarse continents (as in your snippet)
-    function latLonToVector3(lat, lon, altitude=0){ const phi=(90-lat)*(Math.PI/180), theta=(lon+180)*(Math.PI/180); const rr=radius+altitude; return new THREE.Vector3(-rr*Math.sin(phi)*Math.cos(theta), rr*Math.cos(phi), rr*Math.sin(phi)*Math.sin(theta)); }
-    function drawContinent(coords){ const pts = coords.map(c=>latLonToVector3(c[0], c[1], 0.01)); pts.push(pts[0]); const geo = new THREE.BufferGeometry().setFromPoints(pts); const mat = new THREE.LineBasicMaterial({ color:0x3cff8f, transparent:true, opacity:0.4 }); const line = new THREE.Line(geo, mat); scene.add(line); }
-    drawContinent([[70,-100],[70,-60],[45,-50],[25,-80],[30,-115],[50,-125],[60,-140],[70,-100]]);
-    drawContinent([[70,30],[70,180],[50,180],[45,135],[50,40],[70,30]]);
-    drawContinent([[50,75],[50,135],[40,120],[20,110],[25,80],[40,75],[50,75]]);
-    drawContinent([[70,-10],[70,40],[50,50],[35,10],[40,-10],[70,-10]]);
-    drawContinent([[59,-3],[59,2],[50,2],[50,-6],[59,-3]]);
-
-    // Missiles (kept from your logic)
-    const missiles = [];
-    function createMissile(startLat, startLon, endLat, endLon){
-      const points=[]; const steps=100; for (let i=0;i<=steps;i++){ const t=i/steps; const lat=startLat + (endLat-startLat)*t; const lon=startLon + (endLon-startLon)*t; const height = Math.sin(t*Math.PI)*1.2; points.push(latLonToVector3(lat,lon,height)); }
-      const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const mat = new THREE.LineBasicMaterial({ color:0xff4d4d, transparent:true, opacity:0 });
-      const line = new THREE.Line(geo, mat); scene.add(line);
-      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.04,8,8), new THREE.MeshBasicMaterial({color:0xff4d4d})); dot.visible=false; scene.add(dot);
-      return { line, dot, points, progress:0, speed:0.01 };
-    }
-
-    const countries = { 'USA':[40,-100], 'RUSSIA':[60,100], 'CHINA':[35,105], 'UK':[51,0], 'FRANCE':[46,2], 'GERMANY':[51,10], 'INDIA':[20,77], 'JAPAN':[36,138], 'CANADA':[56,-106], 'AUSTRALIA':[-25,133] };
-
-    // ------- Commands -------
-    let defconLevel=5, trackCount=0, gameStarted=false;
-    function processCommand(cmd){
-      const parts = cmd.toUpperCase().split(' '); const command = parts[0];
-      lastInput.textContent = cmd.toUpperCase(); printLine('> ' + cmd);
-      if (command==='Y' || command==='YES'){ if(!gameStarted){ gameStarted=true; printLine(''); printLine('EXCELLENT. A STRANGE GAME.'); printLine(''); printLine('AVAILABLE COMMANDS:'); printLine('  LAUNCH [SOURCE] [TARGET]'); printLine('  LIST | STATUS | DEFCON [1-5] | HELP'); printLine(''); printLine('EXAMPLE: LAUNCH RUSSIA USA'); } else { printLine('GAME ALREADY IN PROGRESS'); } }
-      else if (command==='N' || command==='NO'){ printLine('A WISE DECISION. THE ONLY WINNING MOVE IS NOT TO PLAY.'); }
-      else if (command==='LAUNCH'){
-        if(!gameStarted){ printLine('ERROR: START GAME FIRST (Y/N)', 'error'); return; }
-        const source=parts[1], target=parts[2]; if(!source||!target){ printLine('SYNTAX: LAUNCH [SOURCE] [TARGET]', 'error'); return; }
-        if(!countries[source]){ printLine('ERROR: UNKNOWN SOURCE - ' + source, 'error'); return; }
-        if(!countries[target]){ printLine('ERROR: UNKNOWN TARGET - ' + target, 'error'); return; }
-        const [slat,slon]=countries[source], [elat,elon]=countries[target]; const m=createMissile(slat,slon,elat,elon); missiles.push(m); trackCount++; trackCountDisplay.textContent=trackCount; printLine(`ICBM LAUNCH: ${source} → ${target}`, 'warning'); printLine('TRACK ID: ' + String(trackCount).padStart(4,'0')); if(defconLevel>1){ defconLevel=Math.max(1,defconLevel-1); defconDisplay.textContent=defconLevel; printLine('DEFCON LEVEL: '+defconLevel, 'warning'); }
-      }
-      else if (command==='LIST'){ printLine(''); printLine('AVAILABLE TARGETS:'); Object.keys(countries).forEach(c=>printLine('  '+c)); printLine(''); }
-      else if (command==='STATUS'){ printLine(''); printLine('SYSTEM STATUS:'); printLine('  DEFCON LEVEL: '+defconLevel); printLine('  ACTIVE TRACKS: '+trackCount); printLine('  GAME STATUS: ' + (gameStarted?'ACTIVE':'STANDBY')); printLine(''); }
-      else if (command==='DEFCON'){ const lvl=parseInt(parts[1]); if(lvl>=1 && lvl<=5){ defconLevel=lvl; defconDisplay.textContent=defconLevel; printLine('DEFCON LEVEL SET TO: '+lvl);} else { printLine('ERROR: DEFCON LEVEL MUST BE 1-5','error'); } }
-      else if (command==='HELP'){ printLine(''); printLine('AVAILABLE COMMANDS:'); printLine('  Y/YES, N/NO, LAUNCH [SOURCE] [TARGET], LIST, STATUS, DEFCON [1-5], CLEAR'); printLine(''); }
-      else if (command==='CLEAR'){ term.innerHTML=''; }
-      else { printLine('UNKNOWN COMMAND: '+command, 'error'); printLine('TYPE HELP FOR AVAILABLE COMMANDS'); }
-      printLine('');
-    }
-
-    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const v=input.value.trim(); if(v){ processCommand(v); input.value=''; } } });
-
-    // ------- Animate -------
-    function animate(){ requestAnimationFrame(animate); globe.rotation.y += 0.002; missiles.forEach(m=>{ if(m.progress<1){ m.progress += m.speed; const fade = Math.min(m.progress*3,1); m.line.material.opacity = 0.9*fade; const idx=Math.floor(m.progress*(m.points.length-1)); if(idx<m.points.length){ m.dot.position.copy(m.points[idx]); m.dot.visible=true; } } else { m.dot.visible=false; } }); renderer.render(scene,camera); }
-    animate();
-
-    // ensure focus
-    input.focus();
-  })();
-  </script>
+    
+    <div id="footer">
+        <div>NORAD // CHEYENNE MTN</div>
+        <div>SIM: <span id="sim-status">ACTIVE</span></div>
+        <div>LAST INPUT: <span id="last-input">-</span></div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const terminalOutput = document.getElementById('terminal-output');
+        const commandInput = document.getElementById('command-input');
+        const lastInputDisplay = document.getElementById('last-input');
+        const trackCountDisplay = document.getElementById('track-count');
+        const defconDisplay = document.getElementById('defcon');
+        
+        let defconLevel = 5;
+        let trackCount = 0;
+        let gameStarted = false;
+        
+        // Initialize terminal
+        function printLine(text, className = '') {
+            const line = document.createElement('div');
+            line.className = 'output-line ' + className;
+            line.textContent = text;
+            terminalOutput.appendChild(line);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+        
+        // Boot sequence
+        printLine('WOPR (WAR OPERATION PLAN RESPONSE)');
+        printLine('');
+        printLine('LOGON: JOSHUA');
+        printLine('PASSWORD: ********');
+        printLine('IDENTIFICATION NOT RECOGNIZED');
+        printLine('OVERRIDE: LIST GAMES');
+        printLine('');
+        printLine('GAMES:');
+        printLine('  BLACK JACK');
+        printLine('  GIN RUMMY');
+        printLine('  FIGHTER COMBAT');
+        printLine('  GUERRILLA ENGAGEMENT');
+        printLine('  DESERT WARFARE');
+        printLine('  AIR-TO-GROUND ACTIONS');
+        printLine('  THEATERWIDE TACTICAL WARFARE');
+        printLine('  GLOBAL THERMONUCLEAR WAR');
+        printLine('');
+        printLine('SHALL WE PLAY A GAME? (Y/N)');
+        
+        // Three.js setup
+        const globeContainer = document.getElementById('globe-section');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, globeContainer.clientWidth / globeContainer.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        
+        renderer.setSize(globeContainer.clientWidth, globeContainer.clientHeight);
+        renderer.setClearColor(0x000000);
+        globeContainer.appendChild(renderer.domElement);
+        
+        const radius = 2;
+        
+        // Create wireframe globe
+        const wireframeGeometry = new THREE.SphereGeometry(radius, 24, 24);
+        const wireframeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x33ff33,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.7
+        });
+        const globe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+        scene.add(globe);
+        
+        camera.position.z = 5;
+        camera.position.y = 0.5;
+        
+        function latLonToVector3(lat, lon, altitude = 0) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const r = radius + altitude;
+            
+            return new THREE.Vector3(
+                -r * Math.sin(phi) * Math.cos(theta),
+                r * Math.cos(phi),
+                r * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+        
+        function drawContinent(coordinates) {
+            const points = coordinates.map(coord => 
+                latLonToVector3(coord[0], coord[1], 0.01)
+            );
+            points.push(points[0]);
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0x33ff33,
+                transparent: true,
+                opacity: 0.6
+            });
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+        }
+        
+        // Draw continents
+        drawContinent([[70, -100], [70, -60], [45, -50], [25, -80], [30, -115], [50, -125], [60, -140], [70, -100]]);
+        drawContinent([[70, 30], [70, 180], [50, 180], [45, 135], [50, 40], [70, 30]]);
+        drawContinent([[50, 75], [50, 135], [40, 120], [20, 110], [25, 80], [40, 75], [50, 75]]);
+        drawContinent([[70, -10], [70, 40], [50, 50], [35, 10], [40, -10], [70, -10]]);
+        drawContinent([[59, -3], [59, 2], [50, 2], [50, -6], [59, -3]]);
+        
+        const missiles = [];
+        
+        function createMissile(startLat, startLon, endLat, endLon) {
+            const points = [];
+            const steps = 80;
+            
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const lat = startLat + (endLat - startLat) * t;
+                const lon = startLon + (endLon - startLon) * t;
+                const height = Math.sin(t * Math.PI) * 1.2;
+                points.push(latLonToVector3(lat, lon, height));
+            }
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0xff3333,
+                transparent: true,
+                opacity: 0
+            });
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            
+            const dotGeometry = new THREE.SphereGeometry(0.04, 8, 8);
+            const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+            const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+            dot.visible = false;
+            scene.add(dot);
+            
+            return { line, dot, points, progress: 0, speed: 0.01 };
+        }
+        
+        // Country coordinates
+        const countries = {
+            'USA': [40, -100],
+            'RUSSIA': [60, 100],
+            'CHINA': [35, 105],
+            'UK': [51, 0],
+            'FRANCE': [46, 2],
+            'GERMANY': [51, 10],
+            'INDIA': [20, 77],
+            'JAPAN': [36, 138],
+            'CANADA': [56, -106],
+            'AUSTRALIA': [-25, 133]
+        };
+        
+        // Command processing
+        function processCommand(cmd) {
+            const parts = cmd.toUpperCase().split(' ');
+            const command = parts[0];
+            
+            lastInputDisplay.textContent = cmd.toUpperCase();
+            printLine('> ' + cmd);
+            
+            if (command === 'Y' || command === 'YES') {
+                if (!gameStarted) {
+                    gameStarted = true;
+                    printLine('');
+                    printLine('EXCELLENT. A STRANGE GAME.');
+                    printLine('');
+                    printLine('AVAILABLE COMMANDS:');
+                    printLine('  LAUNCH [SOURCE] [TARGET] - Launch missile');
+                    printLine('  LIST - Show available targets');
+                    printLine('  STATUS - Show current status');
+                    printLine('  DEFCON [1-5] - Set defense condition');
+                    printLine('  HELP - Show commands');
+                    printLine('');
+                    printLine('EXAMPLE: LAUNCH RUSSIA USA');
+                } else {
+                    printLine('GAME ALREADY IN PROGRESS');
+                }
+            } else if (command === 'N' || command === 'NO') {
+                printLine('A WISE DECISION.');
+                printLine('THE ONLY WINNING MOVE IS NOT TO PLAY.');
+            } else if (command === 'LAUNCH') {
+                if (!gameStarted) {
+                    printLine('ERROR: START GAME FIRST (Y/N)', 'error');
+                    return;
+                }
+                
+                const source = parts[1];
+                const target = parts[2];
+                
+                if (!source || !target) {
+                    printLine('SYNTAX: LAUNCH [SOURCE] [TARGET]', 'error');
+                    return;
+                }
+                
+                if (!countries[source]) {
+                    printLine('ERROR: UNKNOWN SOURCE - ' + source, 'error');
+                    return;
+                }
+                
+                if (!countries[target]) {
+                    printLine('ERROR: UNKNOWN TARGET - ' + target, 'error');
+                    return;
+                }
+                
+                const [startLat, startLon] = countries[source];
+                const [endLat, endLon] = countries[target];
+                
+                const missile = createMissile(startLat, startLon, endLat, endLon);
+                missiles.push(missile);
+                trackCount++;
+                trackCountDisplay.textContent = trackCount;
+                
+                printLine('ICBM LAUNCH: ' + source + ' → ' + target, 'warning');
+                printLine('TRACK ID: ' + trackCount.toString().padStart(4, '0'));
+                printLine('TIME TO IMPACT: 18 MINUTES');
+                
+                if (defconLevel > 1) {
+                    defconLevel = Math.max(1, defconLevel - 1);
+                    defconDisplay.textContent = defconLevel;
+                    printLine('DEFCON LEVEL: ' + defconLevel, 'warning');
+                }
+            } else if (command === 'LIST') {
+                printLine('');
+                printLine('AVAILABLE TARGETS:');
+                Object.keys(countries).forEach(country => {
+                    printLine('  ' + country);
+                });
+                printLine('');
+            } else if (command === 'STATUS') {
+                printLine('');
+                printLine('SYSTEM STATUS:');
+                printLine('  DEFCON LEVEL: ' + defconLevel);
+                printLine('  ACTIVE TRACKS: ' + trackCount);
+                printLine('  GAME STATUS: ' + (gameStarted ? 'ACTIVE' : 'STANDBY'));
+                printLine('');
+            } else if (command === 'DEFCON') {
+                const level = parseInt(parts[1]);
+                if (level >= 1 && level <= 5) {
+                    defconLevel = level;
+                    defconDisplay.textContent = defconLevel;
+                    printLine('DEFCON LEVEL SET TO: ' + level);
+                } else {
+                    printLine('ERROR: DEFCON LEVEL MUST BE 1-5', 'error');
+                }
+            } else if (command === 'HELP') {
+                printLine('');
+                printLine('AVAILABLE COMMANDS:');
+                printLine('  Y/YES - Start game');
+                printLine('  N/NO - Decline game');
+                printLine('  LAUNCH [SOURCE] [TARGET] - Launch missile');
+                printLine('  LIST - Show available targets');
+                printLine('  STATUS - Show current status');
+                printLine('  DEFCON [1-5] - Set defense condition');
+                printLine('  CLEAR - Clear terminal');
+                printLine('');
+            } else if (command === 'CLEAR') {
+                terminalOutput.innerHTML = '';
+            } else {
+                printLine('UNKNOWN COMMAND: ' + command, 'error');
+                printLine('TYPE HELP FOR AVAILABLE COMMANDS');
+            }
+            
+            printLine('');
+        }
+        
+        commandInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const cmd = commandInput.value.trim();
+                if (cmd) {
+                    processCommand(cmd);
+                    commandInput.value = '';
+                }
+            }
+        });
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            globe.rotation.y += 0.002;
+            
+            missiles.forEach(missile => {
+                if (missile.progress < 1) {
+                    missile.progress += missile.speed;
+                    const fadeIn = Math.min(missile.progress * 3, 1);
+                    missile.line.material.opacity = fadeIn * 0.9;
+                    
+                    const currentStep = Math.floor(missile.progress * (missile.points.length - 1));
+                    if (currentStep < missile.points.length) {
+                        missile.dot.position.copy(missile.points[currentStep]);
+                        missile.dot.visible = true;
+                    }
+                } else {
+                    missile.dot.visible = false;
+                }
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = globeContainer.clientWidth / globeContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(globeContainer.clientWidth, globeContainer.clientHeight);
+        });
+        
+        animate();
+        commandInput.focus();
+    </script>
 </body>
 </html>
