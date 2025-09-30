@@ -3,520 +3,660 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WOPR - Global Thermonuclear War (Retro Green)</title>
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>WOPR - Global Thermonuclear War</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            background: #0a0a0a;
-            font-family: 'VT323', monospace;
-            color: #33ff33;
-            overflow: hidden;
-            font-size: 18px;
-            text-shadow: 0 0 5px #33ff33;
-        }
-        
-        #header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            padding: 10px 20px;
-            border-bottom: 2px solid #33ff33;
-            display: flex;
-            justify-content: space-between;
-            text-shadow: 0 0 8px #33ff33, 0 0 15px #33ff33;
-            z-index: 100;
-            background: rgba(10, 10, 10, 0.9);
-        }
-        
-        #footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 10px 20px;
-            border-top: 2px solid #33ff33;
-            display: flex;
-            justify-content: space-between;
-            text-shadow: 0 0 8px #33ff33, 0 0 15px #33ff33;
-            z-index: 100;
-            background: rgba(10, 10, 10, 0.9);
-        }
-        
-        #main-container {
-            position: absolute;
-            top: 50px;
-            bottom: 50px;
-            left: 0;
-            right: 0;
-            display: flex;
-        }
-        
-        #terminal-section {
-            width: 40%;
-            border-right: 2px solid #33ff33;
-            display: flex;
-            flex-direction: column;
-            background: rgba(5, 15, 5, 0.8);
-            box-shadow: inset 0 0 50px rgba(51, 255, 51, 0.1);
-        }
-        
-        #terminal-output {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            text-shadow: 0 0 8px #33ff33;
-            letter-spacing: 1px;
-        }
-        
-        #terminal-output::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        #terminal-output::-webkit-scrollbar-track {
-            background: #001100;
-            border-left: 1px solid #33ff33;
-        }
-        
-        #terminal-output::-webkit-scrollbar-thumb {
-            background: #33ff33;
-            box-shadow: 0 0 10px #33ff33;
-        }
-        
-        #input-line {
-            padding: 10px 20px;
-            border-top: 2px solid #33ff33;
-            display: flex;
-            align-items: center;
-            background: rgba(0, 20, 0, 0.5);
-        }
-        
-        #prompt {
-            margin-right: 10px;
-        }
-        
-        #command-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #33ff33;
-            font-family: 'VT323', monospace;
-            font-size: 20px;
-            outline: none;
-            text-shadow: 0 0 8px #33ff33;
-            letter-spacing: 1px;
-        }
-        
-        #globe-section {
-            flex: 1;
-            position: relative;
-        }
-        
-        #status-display {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            text-shadow: 0 0 10px #33ff33, 0 0 20px #33ff33;
-            z-index: 10;
-            background: rgba(10, 10, 10, 0.7);
-            padding: 10px 20px;
-            border: 2px solid #33ff33;
-        }
-        
-        .scan-line {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                to bottom,
-                transparent 50%,
-                rgba(51, 255, 51, 0.03) 51%
-            );
-            background-size: 100% 3px;
-            pointer-events: none;
-            z-index: 5;
-            animation: scan 8s linear infinite;
-        }
-        
-        @keyframes scan {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(3px); }
-        }
-        
-        .output-line {
-            margin-bottom: 5px;
-        }
-        
-        .cursor {
-            display: inline-block;
-            width: 10px;
-            height: 20px;
-            background: #33ff33;
-            animation: blink 1s infinite;
-            box-shadow: 0 0 10px #33ff33;
-        }
-        
-        @keyframes blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
-        }
-        
-        .error {
-            color: #ff3333;
-            text-shadow: 0 0 8px #ff3333;
-        }
-        
-        .warning {
-            color: #ffff33;
-            text-shadow: 0 0 8px #ffff33;
-        }
-    </style>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      font-family: 'VT323', monospace;
+      color: #33ff33;
+      overflow: hidden;
+      font-size: 18px;
+      text-shadow: 0 0 5px #33ff33;
+    }
+
+    #header {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: 10px 20px; border-bottom: 2px solid #33ff33;
+      display: flex; justify-content: space-between;
+      text-shadow: 0 0 8px #33ff33, 0 0 15px #33ff33;
+      z-index: 100; background: rgba(10, 10, 10, 0.9);
+    }
+
+    #footer {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 10px 20px; border-top: 2px solid #33ff33;
+      display: flex; justify-content: space-between;
+      text-shadow: 0 0 8px #33ff33, 0 0 15px #33ff33;
+      z-index: 100; background: rgba(10, 10, 10, 0.9);
+    }
+
+    #main-container {
+      position: absolute; top: 50px; bottom: 50px; left: 0; right: 0; display: flex;
+    }
+
+    #terminal-section {
+      width: 35%; border-right: 2px solid #33ff33; display: flex; flex-direction: column;
+      background: rgba(5, 15, 5, 0.8); box-shadow: inset 0 0 50px rgba(51, 255, 51, 0.1);
+    }
+
+    #terminal-output { flex: 1; overflow-y: auto; padding: 20px; text-shadow: 0 0 8px #33ff33; letter-spacing: 1px; }
+
+    #terminal-output::-webkit-scrollbar { width: 8px; }
+    #terminal-output::-webkit-scrollbar-track { background: #001100; border-left: 1px solid #33ff33; }
+    #terminal-output::-webkit-scrollbar-thumb { background: #33ff33; box-shadow: 0 0 10px #33ff33; }
+
+    #input-line { padding: 10px 20px; border-top: 2px solid #33ff33; display: flex; align-items: center; background: rgba(0, 20, 0, 0.5); }
+    #prompt { margin-right: 10px; }
+
+    #command-input {
+      flex: 1; background: transparent; border: none; color: #33ff33; font-family: 'VT323', monospace; font-size: 20px; outline: none; text-shadow: 0 0 8px #33ff33; letter-spacing: 1px;
+    }
+    #command-input:focus { outline: 2px dashed #7aff7a; outline-offset: 2px; }
+
+    #displays-section {
+      flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 2fr 1fr; gap: 10px; padding: 10px; background: rgba(5, 15, 5, 0.5);
+    }
+
+    .monitor-box { border: 3px solid #33ff33; background: #000; position: relative; box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.1), 0 0 20px rgba(51, 255, 51, 0.3); overflow: hidden; }
+    .monitor-title { position: absolute; top: 5px; left: 10px; font-size: 16px; text-shadow: 0 0 10px #33ff33; z-index: 10; }
+    #world-map-box { grid-column: 1 / 3; }
+
+    .scan-line {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(to bottom, transparent 50%, rgba(51, 255, 51, 0.03) 51%);
+      background-size: 100% 3px; pointer-events: none; z-index: 5; animation: scan 8s linear infinite;
+    }
+    @keyframes scan { 0% { transform: translateY(0); } 100% { transform: translateY(3px); } }
+
+    .output-line { margin-bottom: 5px; }
+    .cursor { display: inline-block; width: 10px; height: 20px; background: #33ff33; animation: blink 1s infinite; box-shadow: 0 0 10px #33ff33; }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+    .error { color: #ff3333; text-shadow: 0 0 8px #ff3333; }
+    .warning { color: #ffff33; text-shadow: 0 0 8px #ffff33; }
+
+    canvas { display: block; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .scan-line { animation: none; }
+      .cursor { animation: none; }
+    }
+  </style>
 </head>
 <body>
-    <div id="header">
-        <div>W.O.P.R // GLOBAL THERMONUCLEAR WAR</div>
-        <div>CONNECTION: <span id="connection-status">SECURE LINK ESTABLISHED</span></div>
+  <div id="header">
+    <div>W.O.P.R // GLOBAL THERMONUCLEAR WAR</div>
+    <div>CONNECTION: <span id="connection-status">SECURE LINK ESTABLISHED</span></div>
+  </div>
+
+  <div id="main-container">
+    <div id="terminal-section">
+      <div id="terminal-output" role="log" aria-live="polite" aria-atomic="false"></div>
+      <div id="input-line">
+        <span id="prompt">&gt;</span>
+        <input type="text" id="command-input" autofocus>
+        <span class="cursor"></span>
+      </div>
     </div>
-    
-    <div id="main-container">
-        <div id="terminal-section">
-            <div id="terminal-output"></div>
-            <div id="input-line">
-                <span id="prompt">&gt;</span>
-                <input type="text" id="command-input" autofocus>
-                <span class="cursor"></span>
-            </div>
-        </div>
-        
-        <div id="globe-section">
-            <div class="scan-line"></div>
-            <div id="status-display">
-                <div>MODE: GLOBAL STRATEGY | TRACKS: <span id="track-count">0</span> | DEFCON: <span id="defcon">5</span></div>
-            </div>
-        </div>
+
+    <div id="displays-section">
+      <div id="world-map-box" class="monitor-box">
+        <div class="monitor-title">GLOBAL THEATER</div>
+        <div class="scan-line"></div>
+        <canvas id="world-canvas"></canvas>
+      </div>
+
+      <div id="usa-box" class="monitor-box">
+        <div class="monitor-title">USA SECTOR</div>
+        <div class="scan-line"></div>
+        <canvas id="usa-canvas"></canvas>
+      </div>
+
+      <div id="asia-box" class="monitor-box">
+        <div class="monitor-title">ASIA SECTOR</div>
+        <div class="scan-line"></div>
+        <canvas id="asia-canvas"></canvas>
+      </div>
     </div>
-    
-    <div id="footer">
-        <div>NORAD // CHEYENNE MTN</div>
-        <div>SIM: <span id="sim-status">ACTIVE</span></div>
-        <div>LAST INPUT: <span id="last-input">-</span></div>
-    </div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-        const terminalOutput = document.getElementById('terminal-output');
-        const commandInput = document.getElementById('command-input');
-        const lastInputDisplay = document.getElementById('last-input');
-        const trackCountDisplay = document.getElementById('track-count');
-        const defconDisplay = document.getElementById('defcon');
-        
-        let defconLevel = 5;
-        let trackCount = 0;
-        let gameStarted = false;
-        
-        // Initialize terminal
-        function printLine(text, className = '') {
-            const line = document.createElement('div');
-            line.className = 'output-line ' + className;
-            line.textContent = text;
-            terminalOutput.appendChild(line);
-            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+  </div>
+
+  <div id="footer">
+    <div>NORAD // CHEYENNE MTN</div>
+    <div>TRACKS: <span id="track-count">0</span> | DEFCON: <span id="defcon">5</span></div>
+    <div>LAST INPUT: <span id="last-input">-</span></div>
+  </div>
+
+  <script>
+    // --- Elements
+    const terminalOutput = document.getElementById('terminal-output');
+    const commandInput = document.getElementById('command-input');
+    const lastInputDisplay = document.getElementById('last-input');
+    const trackCountDisplay = document.getElementById('track-count');
+    const defconDisplay = document.getElementById('defcon');
+
+    // --- State
+    let defconLevel = 5;
+    let trackCount = 0;
+    let gameStarted = false;
+
+    // Geo data (loaded lazily)
+    let worldGeo = null; // GeoJSON FeatureCollection of countries
+
+    // --- Canvases
+    const worldCanvas = document.getElementById('world-canvas');
+    const usaCanvas = document.getElementById('usa-canvas');
+    const asiaCanvas = document.getElementById('asia-canvas');
+
+    const worldCtx = worldCanvas.getContext('2d');
+    const usaCtx = usaCanvas.getContext('2d');
+    const asiaCtx = asiaCanvas.getContext('2d');
+
+    // DPR-aware sizing helpers & offscreen buffers for static maps
+    function fitCanvasToContainer(canvas, ctx) {
+      const dpr = window.devicePixelRatio || 1;
+      const { clientWidth: cw, clientHeight: ch } = canvas.parentElement;
+      canvas.width = Math.max(1, Math.floor(cw * dpr));
+      canvas.height = Math.max(1, Math.floor(ch * dpr));
+      canvas.style.width = cw + 'px';
+      canvas.style.height = ch + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function makeBuffer(width, height) {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, width);
+      c.height = Math.max(1, height);
+      return { canvas: c, ctx: c.getContext('2d') };
+    }
+
+    let worldStatic, usaStatic, asiaStatic;
+    function buildStaticLayers() {
+      const wW = worldCanvas.parentElement.clientWidth;
+      const wH = worldCanvas.parentElement.clientHeight;
+      const uW = usaCanvas.parentElement.clientWidth;
+      const uH = usaCanvas.parentElement.clientHeight;
+      const aW = asiaCanvas.parentElement.clientWidth;
+      const aH = asiaCanvas.parentElement.clientHeight;
+
+      worldStatic = makeBuffer(wW, wH);
+      usaStatic = makeBuffer(uW, uH);
+      asiaStatic = makeBuffer(aW, aH);
+
+      if (worldGeo) {
+        drawWorldFromGeo(worldStatic.ctx, wW, wH);
+      } else {
+        drawWorldMap(worldStatic.ctx, wW, wH);
+      }
+      drawUSAMap(usaStatic.ctx, uW, uH);
+      drawAsiaMap(asiaStatic.ctx, aW, aH);
+    }
+
+    function drawStatic(ctx, buffer) { ctx.drawImage(buffer.canvas, 0, 0); }
+
+    // Throttled resize
+    function doResize() {
+      fitCanvasToContainer(worldCanvas, worldCtx);
+      fitCanvasToContainer(usaCanvas, usaCtx);
+      fitCanvasToContainer(asiaCanvas, asiaCtx);
+      buildStaticLayers();
+    }
+    let resizeScheduled = false;
+    function scheduleResize() {
+      if (resizeScheduled) return;
+      resizeScheduled = true;
+      requestAnimationFrame(() => { resizeScheduled = false; doResize(); });
+    }
+    window.addEventListener('resize', scheduleResize);
+
+    // Missile storage
+    const missiles = [];
+
+    // --- Audio beep
+    function beep(freq = 800, dur = 0.03) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!beep.ctx) beep.ctx = new AudioCtx();
+      const ctx = beep.ctx;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = freq;
+      g.gain.value = 0.03;
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + dur);
+    }
+
+    // --- Terminal helpers
+    function printLine(text, className = '') {
+      const line = document.createElement('div');
+      line.className = 'output-line ' + className;
+      line.textContent = text;
+      terminalOutput.appendChild(line);
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+      // gentle click
+      beep();
+    }
+
+    // --- Boot sequence
+    function boot() {
+      printLine('WOPR (WAR OPERATION PLAN RESPONSE)');
+      printLine('');
+      printLine('LOGON: JOSHUA');
+      printLine('PASSWORD: ********');
+      printLine('IDENTIFICATION NOT RECOGNIZED');
+      printLine('OVERRIDE: LIST GAMES');
+      printLine('');
+      printLine('GAMES:');
+      printLine('  FIGHTER COMBAT');
+      printLine('  GUERRILLA ENGAGEMENT');
+      printLine('  DESERT WARFARE');
+      printLine('  AIR-TO-GROUND ACTIONS');
+      printLine('  THEATERWIDE TACTICAL WARFARE');
+      printLine('  GLOBAL THERMONUCLEAR WAR');
+      printLine('');
+      printLine('SHALL WE PLAY A GAME? (Y/N)');
+    }
+
+    // Country coordinates (normalized 0-1)
+    const countries = {
+      'USA': { x: 0.22, y: 0.35, region: 'world' },
+      'RUSSIA': { x: 0.65, y: 0.25, region: 'world' },
+      'CHINA': { x: 0.68, y: 0.40, region: 'world' },
+      'UK': { x: 0.48, y: 0.28, region: 'world' },
+      'FRANCE': { x: 0.49, y: 0.32, region: 'world' },
+      'GERMANY': { x: 0.51, y: 0.29, region: 'world' },
+      'INDIA': { x: 0.63, y: 0.48, region: 'world' },
+      'JAPAN': { x: 0.75, y: 0.38, region: 'world' },
+      'CANADA': { x: 0.20, y: 0.22, region: 'world' },
+      'AUSTRALIA': { x: 0.78, y: 0.72, region: 'world' }
+    };
+
+    // --- Map drawing (enhanced 80s outlines)
+    // Polyline coastlines as fallback when GeoJSON hasn't loaded yet.
+    const WORLD_COASTS = [ /* (fallback simplified segments; kept from prior version) */
+      {name:'NA', pts:[[0.10,0.18],[0.12,0.15],[0.16,0.14],[0.22,0.15],[0.27,0.17],[0.30,0.20],[0.32,0.24],[0.34,0.28],[0.33,0.32],[0.31,0.36],[0.28,0.40],[0.25,0.44],[0.23,0.47],[0.22,0.51],[0.22,0.55],[0.24,0.58],[0.27,0.60],[0.30,0.61],[0.34,0.60],[0.37,0.58],[0.40,0.55],[0.42,0.52],[0.44,0.49],[0.46,0.45],[0.48,0.41],[0.49,0.36],[0.50,0.33],[0.50,0.31],[0.47,0.29],[0.44,0.27],[0.40,0.25],[0.36,0.24],[0.33,0.22],[0.30,0.20],[0.28,0.18],[0.25,0.17],[0.22,0.16],[0.18,0.17],[0.14,0.18],[0.10,0.18]]},
+      {name:'Greenland', pts:[[0.40,0.12],[0.44,0.11],[0.46,0.13],[0.43,0.15],[0.40,0.14],[0.40,0.12]]},
+      {name:'SA', pts:[[0.28,0.48],[0.30,0.49],[0.33,0.53],[0.34,0.57],[0.35,0.61],[0.35,0.64],[0.34,0.68],[0.32,0.71],[0.30,0.74],[0.28,0.76],[0.26,0.77],[0.25,0.73],[0.25,0.68],[0.26,0.63],[0.27,0.58],[0.27,0.54],[0.27,0.51],[0.28,0.48]]},
+      {name:'EU', pts:[[0.46,0.25],[0.48,0.23],[0.51,0.22],[0.54,0.23],[0.55,0.25],[0.55,0.28],[0.53,0.30],[0.51,0.31],[0.50,0.33],[0.49,0.35],[0.48,0.34],[0.47,0.32],[0.46,0.30],[0.46,0.25]]},
+      {name:'AF', pts:[[0.48,0.37],[0.50,0.34],[0.53,0.35],[0.56,0.40],[0.57,0.46],[0.58,0.51],[0.57,0.56],[0.55,0.61],[0.52,0.64],[0.50,0.63],[0.49,0.60],[0.49,0.55],[0.48,0.49],[0.47,0.44],[0.47,0.40],[0.48,0.37]]},
+      {name:'AS', pts:[[0.55,0.22],[0.60,0.20],[0.66,0.20],[0.72,0.22],[0.76,0.25],[0.78,0.30],[0.79,0.35],[0.78,0.40],[0.76,0.45],[0.73,0.48],[0.69,0.50],[0.64,0.51],[0.60,0.50],[0.58,0.47],[0.58,0.43],[0.57,0.38],[0.56,0.33],[0.55,0.28],[0.55,0.22]]},
+      {name:'AU', pts:[[0.73,0.64],[0.77,0.64],[0.81,0.66],[0.82,0.70],[0.81,0.74],[0.78,0.76],[0.74,0.75],[0.72,0.71],[0.73,0.64]]}
+    ];
+
+    // Neon stroke helper for that bright phosphor glow
+    function strokeNeon(ctx, pathDrawer) {
+      ctx.save();
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#33ff33';
+      // Outer soft glow
+      ctx.shadowBlur = 20; ctx.globalAlpha = 0.45; ctx.strokeStyle = '#33ff33'; ctx.lineWidth = 5; pathDrawer(); ctx.stroke();
+      // Mid glow
+      ctx.shadowBlur = 10; ctx.globalAlpha = 0.85; ctx.lineWidth = 2.5; pathDrawer(); ctx.stroke();
+      // Sharp inner line
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.lineWidth = 1.25; ctx.strokeStyle = 'rgba(51,255,51,0.9)'; pathDrawer(); ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPolyline(ctx, pts, w, h) { ctx.beginPath(); ctx.moveTo(pts[0][0] * w, pts[0][1] * h); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * w, pts[i][1] * h); }
+
+    // --- Simple equirectangular projection
+    function projectLonLat(lon, lat, w, h) {
+      const x = (lon + 180) / 360 * w;
+      const y = (90 - lat) / 180 * h;
+      return [x, y];
+    }
+
+    function drawGeoFeature(ctx, geom, w, h) {
+      const type = geom.type;
+      const coords = geom.coordinates;
+      const drawRing = (ring) => {
+        ctx.beginPath();
+        for (let i = 0; i < ring.length; i++) {
+          const [lon, lat] = ring[i];
+          const [x, y] = projectLonLat(lon, lat, w, h);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
-        
-        // Boot sequence
-        printLine('WOPR (WAR OPERATION PLAN RESPONSE)');
-        printLine('');
-        printLine('LOGON: JOSHUA');
-        printLine('PASSWORD: ********');
-        printLine('IDENTIFICATION NOT RECOGNIZED');
-        printLine('OVERRIDE: LIST GAMES');
-        printLine('');
-        printLine('GAMES:');
-        printLine('  FIGHTER COMBAT');
-        printLine('  GUERRILLA ENGAGEMENT');
-        printLine('  DESERT WARFARE');
-        printLine('  AIR-TO-GROUND ACTIONS');
-        printLine('  THEATERWIDE TACTICAL WARFARE');
-        printLine('  GLOBAL THERMONUCLEAR WAR');
-        printLine('');
-        printLine('SHALL WE PLAY A GAME? (Y/N)');
-        
-        // Three.js setup
-        const globeContainer = document.getElementById('globe-section');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, globeContainer.clientWidth / globeContainer.clientHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        
-        renderer.setSize(globeContainer.clientWidth, globeContainer.clientHeight);
-        renderer.setClearColor(0x000000);
-        globeContainer.appendChild(renderer.domElement);
-        
-        const radius = 2;
-        
-        // Create wireframe globe
-        const wireframeGeometry = new THREE.SphereGeometry(radius, 24, 24);
-        const wireframeMaterial = new THREE.MeshBasicMaterial({
-            color: 0x33ff33,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.7
-        });
-        const globe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
-        scene.add(globe);
-        
-        camera.position.z = 5;
-        camera.position.y = 0.5;
-        
-        function latLonToVector3(lat, lon, altitude = 0) {
-            const phi = (90 - lat) * (Math.PI / 180);
-            const theta = (lon + 180) * (Math.PI / 180);
-            const r = radius + altitude;
-            
-            return new THREE.Vector3(
-                -r * Math.sin(phi) * Math.cos(theta),
-                r * Math.cos(phi),
-                r * Math.sin(phi) * Math.sin(theta)
-            );
-        }
-        
-        function drawContinent(coordinates) {
-            const points = coordinates.map(coord => 
-                latLonToVector3(coord[0], coord[1], 0.01)
-            );
-            points.push(points[0]);
-            
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({ 
-                color: 0x33ff33,
-                transparent: true,
-                opacity: 0.6
-            });
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
-        }
-        
-        // Draw continents
-        drawContinent([[70, -100], [70, -60], [45, -50], [25, -80], [30, -115], [50, -125], [60, -140], [70, -100]]);
-        drawContinent([[70, 30], [70, 180], [50, 180], [45, 135], [50, 40], [70, 30]]);
-        drawContinent([[50, 75], [50, 135], [40, 120], [20, 110], [25, 80], [40, 75], [50, 75]]);
-        drawContinent([[70, -10], [70, 40], [50, 50], [35, 10], [40, -10], [70, -10]]);
-        drawContinent([[59, -3], [59, 2], [50, 2], [50, -6], [59, -3]]);
-        
-        const missiles = [];
-        
-        function createMissile(startLat, startLon, endLat, endLon) {
-            const points = [];
-            const steps = 80;
-            
-            for (let i = 0; i <= steps; i++) {
-                const t = i / steps;
-                const lat = startLat + (endLat - startLat) * t;
-                const lon = startLon + (endLon - startLon) * t;
-                const height = Math.sin(t * Math.PI) * 1.2;
-                points.push(latLonToVector3(lat, lon, height));
-            }
-            
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({ 
-                color: 0xff3333,
-                transparent: true,
-                opacity: 0
-            });
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
-            
-            const dotGeometry = new THREE.SphereGeometry(0.04, 8, 8);
-            const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xff3333 });
-            const dot = new THREE.Mesh(dotGeometry, dotMaterial);
-            dot.visible = false;
-            scene.add(dot);
-            
-            return { line, dot, points, progress: 0, speed: 0.01 };
-        }
-        
-        // Country coordinates
-        const countries = {
-            'USA': [40, -100],
-            'RUSSIA': [60, 100],
-            'CHINA': [35, 105],
-            'UK': [51, 0],
-            'FRANCE': [46, 2],
-            'GERMANY': [51, 10],
-            'INDIA': [20, 77],
-            'JAPAN': [36, 138],
-            'CANADA': [56, -106],
-            'AUSTRALIA': [-25, 133]
+      };
+      if (type === 'Polygon') {
+        strokeNeon(ctx, () => drawRing(coords[0]));
+      } else if (type === 'MultiPolygon') {
+        coords.forEach(poly => strokeNeon(ctx, () => drawRing(poly[0])));
+      }
+    }
+
+    function drawWorldFromGeo(ctx, w, h) {
+      // radar grid
+      ctx.save(); ctx.strokeStyle = '#33ff33'; ctx.lineWidth = 1; ctx.globalAlpha = 0.18;
+      const gridX = 12, gridY = 8;
+      for (let i = 0; i <= gridX; i++) { ctx.beginPath(); ctx.moveTo(i * w / gridX, 0); ctx.lineTo(i * w / gridX, h); ctx.stroke(); }
+      for (let i = 0; i <= gridY; i++) { ctx.beginPath(); ctx.moveTo(0, i * h / gridY); ctx.lineTo(w, i * h / gridY); ctx.stroke(); }
+      ctx.restore();
+
+      // draw all country outlines
+      worldGeo.features.forEach(f => drawGeoFeature(ctx, f.geometry, w, h));
+
+      // target markers
+      ctx.globalAlpha = 1; ctx.fillStyle = '#33ff33';
+      Object.values(countries).forEach(pos => { ctx.beginPath(); ctx.arc(pos.x * w, pos.y * h, 3, 0, Math.PI * 2); ctx.fill(); });
+    }
+
+    function drawWorldMap(ctx, w, h) {
+      // fallback outlines if geo not loaded
+      ctx.save(); ctx.strokeStyle = '#33ff33'; ctx.lineWidth = 1; ctx.globalAlpha = 0.25;
+      const gridX = 20, gridY = 12;
+      for (let i = 0; i <= gridX; i++) { ctx.beginPath(); ctx.moveTo(i * w / gridX, 0); ctx.lineTo(i * w / gridX, h); ctx.stroke(); }
+      for (let i = 0; i <= gridY; i++) { ctx.beginPath(); ctx.moveTo(0, i * h / gridY); ctx.lineTo(w, i * h / gridY); ctx.stroke(); }
+      ctx.restore();
+      WORLD_COASTS.forEach(seg => strokeNeon(ctx, () => drawPolyline(ctx, seg.pts, w, h)));
+      ctx.globalAlpha = 1; ctx.fillStyle = '#33ff33';
+      Object.entries(countries).forEach(([name, pos]) => { ctx.beginPath(); ctx.arc(pos.x * w, pos.y * h, 3, 0, Math.PI * 2); ctx.fill(); });
+    }
+
+    // Country-only renderer using bbox fit to canvas
+    function drawCountryByName(ctx, w, h, name) {
+      if (!worldGeo) return;
+      const feat = worldGeo.features.find(f => (f.properties && (f.properties.ADMIN === name || f.properties.name === name)));
+      if (!feat) return;
+      // compute projected bbox
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      const track = (lon, lat) => { const [x, y] = projectLonLat(lon, lat, 1000, 500); minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
+      const walk = (geom) => {
+        const T = geom.type, C = geom.coordinates;
+        if (T === 'Polygon') C[0].forEach(([lon,lat]) => track(lon,lat));
+        else if (T === 'MultiPolygon') C.forEach(poly => poly[0].forEach(([lon,lat]) => track(lon,lat)));
+      };
+      walk(feat.geometry);
+      const bw = maxX - minX, bh = maxY - minY;
+      const pad = 0.08;
+      const scale = Math.min((1 - pad*2) * w / bw, (1 - pad*2) * h / bh);
+      const ox = (w - bw * scale)/2 - minX * scale + pad * w;
+      const oy = (h - bh * scale)/2 - minY * scale + pad * h;
+
+      const drawScaled = (geom) => {
+        const T = geom.type, C = geom.coordinates;
+        const drawRing = (ring) => {
+          ctx.beginPath();
+          for (let i = 0; i < ring.length; i++) {
+            const [lon, lat] = ring[i];
+            const [px, py] = projectLonLat(lon, lat, 1000, 500);
+            const x = px * scale + ox; const y = py * scale + oy;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
         };
-        
-        // Command processing
-        function processCommand(cmd) {
-            const parts = cmd.toUpperCase().split(' ');
-            const command = parts[0];
-            
-            lastInputDisplay.textContent = cmd.toUpperCase();
-            printLine('> ' + cmd);
-            
-            if (command === 'Y' || command === 'YES') {
-                if (!gameStarted) {
-                    gameStarted = true;
-                    printLine('');
-                    printLine('EXCELLENT. A STRANGE GAME.');
-                    printLine('');
-                    printLine('AVAILABLE COMMANDS:');
-                    printLine('  LAUNCH [SOURCE] [TARGET] - Launch missile');
-                    printLine('  LIST - Show available targets');
-                    printLine('  STATUS - Show current status');
-                    printLine('  DEFCON [1-5] - Set defense condition');
-                    printLine('  HELP - Show commands');
-                    printLine('');
-                    printLine('EXAMPLE: LAUNCH RUSSIA USA');
-                } else {
-                    printLine('GAME ALREADY IN PROGRESS');
-                }
-            } else if (command === 'N' || command === 'NO') {
-                printLine('A WISE DECISION.');
-                printLine('THE ONLY WINNING MOVE IS NOT TO PLAY.');
-            } else if (command === 'LAUNCH') {
-                if (!gameStarted) {
-                    printLine('ERROR: START GAME FIRST (Y/N)', 'error');
-                    return;
-                }
-                
-                const source = parts[1];
-                const target = parts[2];
-                
-                if (!source || !target) {
-                    printLine('SYNTAX: LAUNCH [SOURCE] [TARGET]', 'error');
-                    return;
-                }
-                
-                if (!countries[source]) {
-                    printLine('ERROR: UNKNOWN SOURCE - ' + source, 'error');
-                    return;
-                }
-                
-                if (!countries[target]) {
-                    printLine('ERROR: UNKNOWN TARGET - ' + target, 'error');
-                    return;
-                }
-                
-                const [startLat, startLon] = countries[source];
-                const [endLat, endLon] = countries[target];
-                
-                const missile = createMissile(startLat, startLon, endLat, endLon);
-                missiles.push(missile);
-                trackCount++;
-                trackCountDisplay.textContent = trackCount;
-                
-                printLine('ICBM LAUNCH: ' + source + ' → ' + target, 'warning');
-                printLine('TRACK ID: ' + trackCount.toString().padStart(4, '0'));
-                printLine('TIME TO IMPACT: 18 MINUTES');
-                
-                if (defconLevel > 1) {
-                    defconLevel = Math.max(1, defconLevel - 1);
-                    defconDisplay.textContent = defconLevel;
-                    printLine('DEFCON LEVEL: ' + defconLevel, 'warning');
-                }
-            } else if (command === 'LIST') {
-                printLine('');
-                printLine('AVAILABLE TARGETS:');
-                Object.keys(countries).forEach(country => {
-                    printLine('  ' + country);
-                });
-                printLine('');
-            } else if (command === 'STATUS') {
-                printLine('');
-                printLine('SYSTEM STATUS:');
-                printLine('  DEFCON LEVEL: ' + defconLevel);
-                printLine('  ACTIVE TRACKS: ' + trackCount);
-                printLine('  GAME STATUS: ' + (gameStarted ? 'ACTIVE' : 'STANDBY'));
-                printLine('');
-            } else if (command === 'DEFCON') {
-                const level = parseInt(parts[1]);
-                if (level >= 1 && level <= 5) {
-                    defconLevel = level;
-                    defconDisplay.textContent = defconLevel;
-                    printLine('DEFCON LEVEL SET TO: ' + level);
-                } else {
-                    printLine('ERROR: DEFCON LEVEL MUST BE 1-5', 'error');
-                }
-            } else if (command === 'HELP') {
-                printLine('');
-                printLine('AVAILABLE COMMANDS:');
-                printLine('  Y/YES - Start game');
-                printLine('  N/NO - Decline game');
-                printLine('  LAUNCH [SOURCE] [TARGET] - Launch missile');
-                printLine('  LIST - Show available targets');
-                printLine('  STATUS - Show current status');
-                printLine('  DEFCON [1-5] - Set defense condition');
-                printLine('  CLEAR - Clear terminal');
-                printLine('');
-            } else if (command === 'CLEAR') {
-                terminalOutput.innerHTML = '';
-            } else {
-                printLine('UNKNOWN COMMAND: ' + command, 'error');
-                printLine('TYPE HELP FOR AVAILABLE COMMANDS');
-            }
-            
-            printLine('');
+        if (T === 'Polygon') strokeNeon(ctx, () => drawRing(C[0]));
+        else if (T === 'MultiPolygon') C.forEach(poly => strokeNeon(ctx, () => drawRing(poly[0])));
+      };
+
+      // clear and grid
+      ctx.clearRect(0,0,w,h);
+      ctx.save(); ctx.strokeStyle = '#33ff33'; ctx.lineWidth = 1; ctx.globalAlpha = 0.25;
+      for (let i = 0; i <= 10; i++) { ctx.beginPath(); ctx.moveTo(i * w / 10, 0); ctx.lineTo(i * w / 10, h); ctx.stroke(); }
+      for (let i = 0; i <= 6; i++) { ctx.beginPath(); ctx.moveTo(0, i * h / 6); ctx.lineTo(w, i * h / 6); ctx.stroke(); }
+      ctx.restore();
+
+      drawScaled(feat.geometry);
+    }
+
+    function drawUSAMap(ctx, w, h) {
+      // default: if GeoJSON loaded, draw USA outline precisely; else fallback polyline
+      if (worldGeo) { drawCountryByName(ctx, w, h, 'United States of America'); return; }
+      // fallback grid + outline
+      ctx.save(); ctx.strokeStyle = '#33ff33'; ctx.lineWidth = 1; ctx.globalAlpha = 0.25;
+      for (let i = 0; i <= 10; i++) { ctx.beginPath(); ctx.moveTo(i * w / 10, 0); ctx.lineTo(i * w / 10, h); ctx.stroke(); }
+      for (let i = 0; i <= 6; i++) { ctx.beginPath(); ctx.moveTo(0, i * h / 6); ctx.lineTo(w, i * h / 6); ctx.stroke(); }
+      ctx.restore();
+      const US = [[0.16,0.36],[0.18,0.30],[0.22,0.27],[0.28,0.28],[0.36,0.30],[0.45,0.31],[0.55,0.31],[0.63,0.32],[0.70,0.34],[0.74,0.38],[0.75,0.44],[0.73,0.55],[0.66,0.66],[0.56,0.73],[0.40,0.77],[0.28,0.77],[0.20,0.70],[0.17,0.60],[0.16,0.50],[0.16,0.36]];
+      strokeNeon(ctx, () => drawPolyline(ctx, US, w, h));
+    }
+
+    function drawAsiaMap(ctx, w, h) {
+      if (worldGeo) { drawCountryByName(ctx, w, h, 'Russian Federation'); return; }
+      ctx.save(); ctx.strokeStyle = '#33ff33'; ctx.lineWidth = 1; ctx.globalAlpha = 0.25;
+      for (let i = 0; i <= 10; i++) { ctx.beginPath(); ctx.moveTo(i * w / 10, 0); ctx.lineTo(i * w / 10, h); ctx.stroke(); }
+      for (let i = 0; i <= 6; i++) { ctx.beginPath(); ctx.moveTo(0, i * h / 6); ctx.lineTo(w, i * h / 6); ctx.stroke(); }
+      ctx.restore();
+      const ASIA = [[0.18,0.28],[0.34,0.22],[0.48,0.22],[0.60,0.25],[0.70,0.30],[0.76,0.38],[0.77,0.45],[0.74,0.52],[0.66,0.58],[0.54,0.62],[0.40,0.62],[0.25,0.57],[0.20,0.50],[0.18,0.40],[0.18,0.28]];
+      strokeNeon(ctx, () => drawPolyline(ctx, ASIA, w, h));
+    }
+
+    // --- Missile logic with arced trajectories and cleanup
+    function quadBezier(p0, p1, p2, t) {
+      const x = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
+      const y = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
+      return { x, y };
+    }
+
+    function createMissile(source, target) {
+      const src = countries[source];
+      const tgt = countries[target];
+      const ctrl = { x: (src.x + tgt.x) / 2, y: Math.min(src.y, tgt.y) - 0.15 };
+      return {
+        x1: src.x, y1: src.y,
+        x2: tgt.x, y2: tgt.y,
+        ctrl,
+        progress: 0,
+        speed: 0.008 + Math.random() * 0.004,
+        source, target,
+        exploded: false
+      };
+    }
+
+    function impactFlash(ctx, x, y) {
+      for (let r = 12; r <= 26; r += 7) {
+        ctx.strokeStyle = '#ffff33';
+        ctx.globalAlpha = 0.9 - (r / 30);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawMissiles(ctx, w, h) {
+      for (let i = missiles.length - 1; i >= 0; i--) {
+        const m = missiles[i];
+        if (m.progress < 1) m.progress += m.speed;
+        const p = quadBezier({ x: m.x1, y: m.y1 }, m.ctrl, { x: m.x2, y: m.y2 }, Math.min(1, m.progress));
+        const cx = p.x * w, cy = p.y * h;
+        const sx = m.x1 * w, sy = m.y1 * h;
+
+        // trail
+        ctx.strokeStyle = '#ff3333'; ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(cx, cy); ctx.stroke();
+        // warhead
+        ctx.globalAlpha = 1; ctx.fillStyle = '#ff3333'; ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI * 2); ctx.fill();
+
+        if (m.progress >= 1 && !m.exploded) { impactFlash(ctx, m.x2 * w, m.y2 * h); m.exploded = true; }
+        if (m.exploded) { missiles.splice(i, 1); }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // --- DEFCON logic
+    function setDefcon(n) {
+      defconLevel = Math.max(1, Math.min(5, n));
+      defconDisplay.textContent = defconLevel;
+    }
+    let defconCooldown = 0; // frames until we tick back up
+    function tickDefcon() {
+      if (defconCooldown > 0) defconCooldown--;
+      else if (defconLevel < 5) {
+        setDefcon(defconLevel + 1);
+        defconCooldown = 60 * 20; // ~20s at 60fps
+      }
+    }
+
+    // --- Animation loop
+    function animate() {
+      worldCtx.clearRect(0, 0, worldCanvas.width, worldCanvas.height);
+      usaCtx.clearRect(0, 0, usaCanvas.width, usaCanvas.height);
+      asiaCtx.clearRect(0, 0, asiaCanvas.width, asiaCanvas.height);
+
+      drawStatic(worldCtx, worldStatic);
+      drawStatic(usaCtx, usaStatic);
+      drawStatic(asiaCtx, asiaStatic);
+
+      const wW = worldCanvas.parentElement.clientWidth;
+      const wH = worldCanvas.parentElement.clientHeight;
+      drawMissiles(worldCtx, wW, wH);
+
+      tickDefcon();
+      requestAnimationFrame(animate);
+    }
+
+    // --- Command parsing, history, autocomplete
+    const history = []; let histIdx = -1;
+    commandInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const cmd = commandInput.value.trim();
+        if (cmd) {
+          history.push(cmd); histIdx = history.length;
+          processCommand(cmd);
+          commandInput.value = '';
         }
-        
-        commandInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const cmd = commandInput.value.trim();
-                if (cmd) {
-                    processCommand(cmd);
-                    commandInput.value = '';
-                }
-            }
-        });
-        
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            globe.rotation.y += 0.002;
-            
-            missiles.forEach(missile => {
-                if (missile.progress < 1) {
-                    missile.progress += missile.speed;
-                    const fadeIn = Math.min(missile.progress * 3, 1);
-                    missile.line.material.opacity = fadeIn * 0.9;
-                    
-                    const currentStep = Math.floor(missile.progress * (missile.points.length - 1));
-                    if (currentStep < missile.points.length) {
-                        missile.dot.position.copy(missile.points[currentStep]);
-                        missile.dot.visible = true;
-                    }
-                } else {
-                    missile.dot.visible = false;
-                }
-            });
-            
-            renderer.render(scene, camera);
+      } else if (e.key === 'ArrowUp') {
+        if (histIdx > 0) { histIdx--; commandInput.value = history[histIdx] || ''; setTimeout(() => commandInput.setSelectionRange(9999, 9999)); }
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
+        if (histIdx < history.length) { histIdx++; commandInput.value = history[histIdx] || ''; setTimeout(() => commandInput.setSelectionRange(9999, 9999)); }
+        e.preventDefault();
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        const v = commandInput.value.trim().toUpperCase();
+        const cmds = ['Y','YES','N','NO','LAUNCH','LIST','STATUS','DEFCON','HELP','CLEAR'];
+        const match = cmds.find(c => c.startsWith(v));
+        if (match) commandInput.value = match + (match === 'LAUNCH' ? ' ' : '');
+      }
+    });
+
+    function processCommand(raw) {
+      const cleaned = raw.replace(/->/g, ' ').replace(/,/g, ' ').trim();
+      const parts = cleaned.split(/\s+/).map(s => s.toUpperCase());
+      const command = parts[0] || '';
+
+      lastInputDisplay.textContent = parts.join(' ');
+      printLine('> ' + raw);
+
+      if (command === 'Y' || command === 'YES') {
+        if (!gameStarted) {
+          gameStarted = true;
+          printLine('');
+          printLine('EXCELLENT. A STRANGE GAME.');
+          printLine('THE ONLY WINNING MOVE IS NOT TO PLAY.');
+          printLine('HOW ABOUT A NICE GAME OF CHESS?');
+          printLine('');
+          printLine('AVAILABLE COMMANDS:');
+          printLine('  LAUNCH [SOURCE] [TARGET]  - Launch missile');
+          printLine('  LIST                      - Show available targets');
+          printLine('  STATUS                    - Show current status');
+          printLine('  DEFCON [1-5]              - Set defense condition');
+          printLine('  COUNTRY [NAME]            - Render country outline in right panel');
+          printLine('  HELP                      - Show commands');
+          printLine('');
+          printLine('EXAMPLE: LAUNCH RUSSIA USA');
+        } else {
+          printLine('GAME ALREADY IN PROGRESS');
         }
-        
-        window.addEventListener('resize', () => {
-            camera.aspect = globeContainer.clientWidth / globeContainer.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(globeContainer.clientWidth, globeContainer.clientHeight);
-        });
-        
-        animate();
-        commandInput.focus();
-    </script>
+      } else if (command === 'N' || command === 'NO') {
+        printLine('A WISE DECISION.');
+        printLine('THE ONLY WINNING MOVE IS NOT TO PLAY.');
+      } else if (command === 'LAUNCH') {
+        if (!gameStarted) { printLine('ERROR: START GAME FIRST (Y/N)', 'error'); return; }
+        const source = parts[1]; const target = parts[2];
+        if (!source || !target) { printLine('SYNTAX: LAUNCH [SOURCE] [TARGET]', 'error'); return; }
+        if (!countries[source]) { printLine('ERROR: UNKNOWN SOURCE - ' + source, 'error'); return; }
+        if (!countries[target]) { printLine('ERROR: UNKNOWN TARGET - ' + target, 'error'); return; }
+
+        const missile = createMissile(source, target);
+        missiles.push(missile);
+        trackCount++; trackCountDisplay.textContent = trackCount;
+        printLine('ICBM LAUNCH: ' + source + ' \u2192 ' + target, 'warning');
+        printLine('TRACK ID: ' + trackCount.toString().padStart(4, '0'));
+        printLine('TIME TO IMPACT: 18 MINUTES');
+
+        if (defconLevel > 1) {
+          setDefcon(defconLevel - 1);
+          defconCooldown = 60 * 40; // ~40s before drifting back
+          printLine('DEFCON LEVEL: ' + defconLevel, 'warning');
+        }
+      } else if (command === 'LIST') {
+        printLine(''); printLine('AVAILABLE TARGETS:');
+        Object.keys(countries).forEach(country => { printLine('  ' + country); });
+        printLine('');
+      } else if (command === 'STATUS') {
+        printLine('');
+        printLine('SYSTEM STATUS:');
+        printLine('  DEFCON LEVEL: ' + defconLevel);
+        printLine('  ACTIVE TRACKS: ' + trackCount);
+        printLine('  GAME STATUS: ' + (gameStarted ? 'ACTIVE' : 'STANDBY'));
+        printLine('');
+      } else if (command === 'DEFCON') {
+        const level = parseInt(parts[1], 10);
+        if (level >= 1 && level <= 5) { setDefcon(level); printLine('DEFCON LEVEL SET TO: ' + level); }
+        else { printLine('ERROR: DEFCON LEVEL MUST BE 1-5', 'error'); }
+      } else if (command === 'COUNTRY') {
+        const name = parts.slice(1).join(' ');
+        if (!name) { printLine('SYNTAX: COUNTRY [NAME]', 'error'); }
+        else if (!worldGeo) { printLine('LOADING GEODATA... TRY AGAIN IN A MOMENT', 'warning'); }
+        else {
+          // Draw into the USA panel for now; retitle box
+          const title = document.querySelector('#usa-box .monitor-title');
+          title.textContent = name.toUpperCase();
+          drawCountryByName(usaStatic.ctx, usaCanvas.parentElement.clientWidth, usaCanvas.parentElement.clientHeight, name);
+        }
+      } else if (command === 'HELP') {
+        printLine('');
+        printLine('AVAILABLE COMMANDS:');
+        printLine('  Y/YES                    - Start game');
+        printLine('  N/NO                     - Decline game');
+        printLine('  LAUNCH [SOURCE] [TARGET] - Launch missile');
+        printLine('  LIST                     - Show available targets');
+        printLine('  STATUS                   - Show current status');
+        printLine('  DEFCON [1-5]             - Set defense condition');
+        printLine('  COUNTRY [NAME]           - Render country outline');
+        printLine('  CLEAR                    - Clear terminal');
+        printLine('');
+        printLine('AVAILABLE COMMANDS:');
+        printLine('  Y/YES                    - Start game');
+        printLine('  N/NO                     - Decline game');
+        printLine('  LAUNCH [SOURCE] [TARGET] - Launch missile');
+        printLine('  LIST                     - Show available targets');
+        printLine('  STATUS                   - Show current status');
+        printLine('  DEFCON [1-5]             - Set defense condition');
+        printLine('  CLEAR                    - Clear terminal');
+        printLine('');
+      } else if (command === 'CLEAR') {
+        terminalOutput.innerHTML = '';
+      } else if (command) {
+        printLine('UNKNOWN COMMAND: ' + command, 'error');
+        printLine('TYPE HELP FOR AVAILABLE COMMANDS');
+      }
+
+      printLine('');
+    }
+
+    // --- Init
+    doResize();
+
+    // Load real country outlines (GeoJSON). If offline, fallback remains.
+    // Using a small, public GeoJSON of world countries.
+    fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+      .then(r => r.json())
+      .then(geo => { worldGeo = geo; buildStaticLayers(); })
+      .catch(() => { /* keep fallback */ });
+
+    boot();
+    animate();
+    commandInput.focus();
+  </script>
 </body>
 </html>
