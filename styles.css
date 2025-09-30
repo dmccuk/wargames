@@ -489,40 +489,40 @@ body {
   text-shadow: 0 0 10px var(--warn); 
 }
 
-/* FLOATING SYSTEM MESSAGES CONSOLE */
+/* FLOATING SYSTEM MESSAGES CONSOLE - SMALL & NON-INTRUSIVE */
 .system-console {
   position: fixed;
-  right: 20px;
+  left: 10px;
   bottom: 80px;
-  width: 400px;
-  max-height: 300px;
-  background: rgba(10, 10, 10, 0.95);
-  border: 2px solid var(--phosphor);
-  box-shadow: 0 0 20px rgba(51, 255, 51, 0.5), inset 0 0 20px rgba(51, 255, 51, 0.1);
-  z-index: 500;
+  width: 350px;
+  height: 200px;
+  background: rgba(5, 15, 5, 0.92);
+  border: 1px solid var(--phosphor);
+  box-shadow: 0 0 15px rgba(51, 255, 51, 0.3), inset 0 0 20px rgba(51, 255, 51, 0.05);
+  z-index: 9999;
   display: none;
 }
 
 .console-header {
-  background: rgba(51, 255, 51, 0.15);
-  padding: 8px 12px;
+  background: rgba(0, 20, 0, 0.85);
+  padding: 6px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--phosphor);
-  cursor: grab;
+  cursor: move;
   user-select: none;
 }
 
 .console-title {
-  font-size: 18px;
+  font-size: 14px;
   letter-spacing: 2px;
-  text-shadow: 0 0 8px var(--phosphor);
+  text-shadow: 0 0 6px var(--phosphor);
 }
 
 .console-controls {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .console-minimize,
@@ -531,12 +531,14 @@ body {
   border: 1px solid var(--phosphor);
   color: var(--phosphor);
   font-family: 'VT323', monospace;
-  font-size: 18px;
-  width: 28px;
-  height: 28px;
+  font-size: 16px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
   text-shadow: 0 0 5px var(--phosphor);
   transition: all 0.2s;
+  padding: 0;
+  line-height: 1;
 }
 
 .console-minimize:hover,
@@ -549,39 +551,36 @@ body {
 
 .console-content {
   display: block;
+  height: calc(100% - 32px);
 }
 
 .system-output {
-  height: 250px;
+  height: 100%;
   overflow-y: auto;
-  padding: 10px;
-  font-size: 14px;
-  line-height: 1.4;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  letter-spacing: 1px;
 }
 
 .system-output::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .system-output::-webkit-scrollbar-track {
-  background: rgba(0, 26, 0, 0.5);
+  background: rgba(0, 20, 0, 0.5);
 }
 
 .system-output::-webkit-scrollbar-thumb {
   background: var(--phosphor);
-  box-shadow: 0 0 8px var(--phosphor);
+  box-shadow: 0 0 6px var(--phosphor);
 }
 
 .system-line {
-  margin: 5px 0;
-  text-shadow: 0 0 5px var(--phosphor);
-  font-size: 14px;
+  margin: 3px 0;
+  text-shadow: 0 0 4px var(--phosphor);
+  font-size: 12px;
   color: var(--phosphor);
-}
-
-.system-line:contains("⚠") {
-  color: var(--warn);
-  text-shadow: 0 0 8px var(--warn);
 }
 
 /* TRANSMISSION POPUPS */
