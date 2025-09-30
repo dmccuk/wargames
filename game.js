@@ -38,22 +38,9 @@ const countries = {
 };
 
 const puzzles = [
-  {
-    type: 'binary',
-    question: 'CONVERT BINARY TO DECIMAL',
-    binary: '11010101',
-    answer: 213
-  },
-  {
-    type: 'logic',
-    question: 'SOLVE: IF A=1, B=2, C=3... WHAT IS WOPR?',
-    answer: 72
-  },
-  {
-    type: 'pattern',
-    question: 'COMPLETE SEQUENCE: 2, 4, 8, 16, ?',
-    answer: 32
-  }
+  { type: 'binary', question: 'CONVERT BINARY TO DECIMAL', binary: '11010101', answer: 213 },
+  { type: 'logic', question: 'SOLVE: IF A=1, B=2, C=3... WHAT IS WOPR?', answer: 72 },
+  { type: 'pattern', question: 'COMPLETE SEQUENCE: 2, 4, 8, 16, ?', answer: 32 }
 ];
 
 let currentPuzzle = 0;
@@ -430,7 +417,7 @@ function startLevel5() {
   initSystemMessages();
   startIntelligenceReports();
   startSubmarinePatrol();
-  createSDISatellites(); // Create satellites from start
+  createSDISatellites();
 
   launchTimer = setTimeout(() => {
     endGame();
@@ -439,12 +426,19 @@ function startLevel5() {
 
 // ==================== SDI SYSTEM ====================
 function createSDISatellites() {
-  // Create 8 satellites visible from the start
+  // Create 8 satellites with random 3D distribution around globe
   for (let i = 0; i < 8; i++) {
     const angle = (i / 8) * Math.PI * 2;
+    // Random orbital inclination (0 to 90 degrees)
+    const inclination = Math.random() * Math.PI / 2;
+    // Random phase offset
+    const phaseOffset = Math.random() * Math.PI * 2;
+    
     sdiSatellites.push({
       angle: angle,
-      speed: 0.01,
+      speed: 0.008 + Math.random() * 0.004, // Varying speeds
+      inclination: inclination,
+      phaseOffset: phaseOffset,
       active: true
     });
     
@@ -500,9 +494,9 @@ function showSDIStatus() {
 
 function attemptIntercept(missile) {
   if (!sdiShieldActive) return false;
-  if (missile.target.lat !== countries.USA.lat) return false; // Only protect USA
+  if (missile.target.lat !== countries.USA.lat) return false;
   
-  if (Math.random() < 0.7) { // 70% success rate
+  if (Math.random() < 0.7) {
     missile.intercepted = true;
     addTerminalLine('[SDI] MISSILE INTERCEPTED - THREAT NEUTRALIZED');
     playLaser();
@@ -553,12 +547,7 @@ function startSubmarinePatrol() {
 
 // ==================== SCOREBOARD SYSTEM ====================
 function loadScoreboard() {
-  try {
-    const saved = localStorage.getItem('wargames-scoreboard');
-    if (saved) {
-      scoreboard = JSON.parse(saved);
-    }
-  } catch(e) {}
+  scoreboard = [];
 }
 
 function saveScore() {
@@ -572,10 +561,6 @@ function saveScore() {
   scoreboard.push(entry);
   scoreboard.sort((a, b) => b.score - a.score);
   scoreboard = scoreboard.slice(0, 10);
-  
-  try {
-    localStorage.setItem('wargames-scoreboard', JSON.stringify(scoreboard));
-  } catch(e) {}
 }
 
 function showScoreboard() {
@@ -738,7 +723,6 @@ function launchMissile(source, target) {
     intercepted: false
   };
   
-  // Attempt SDI intercept
   if (attemptIntercept(missile)) {
     missile.intercepted = true;
   }
@@ -937,10 +921,9 @@ function animateGlobe() {
         const arc = createGlobeMissileArc(missile.source, missile.target, missile.progress);
         if (arc) scene.add(arc);
         
-        // Draw intercept laser if missile is intercepted mid-flight
         if (sdiShieldActive && missile.progress > 0.3 && missile.progress < 0.7 && 
             Math.abs(missile.target.lat - countries.USA.lat) < 10) {
-          if (Math.random() < 0.02) { // Occasional laser flash
+          if (Math.random() < 0.02) {
             const nearestSat = sdiMeshes[0];
             if (nearestSat) {
               const missilePos = arc.geometry.attributes.position;
@@ -967,11 +950,11 @@ function animateGlobe() {
       
       sat.angle += sat.speed;
       const orbitRadius = 2.8;
-      const tilt = Math.PI / 6;
       
-      const x = orbitRadius * Math.cos(sat.angle) * Math.cos(tilt);
-      const y = orbitRadius * Math.sin(sat.angle);
-      const z = orbitRadius * Math.cos(sat.angle) * Math.sin(tilt);
+      // 3D orbital path using inclination and phase offset
+      const x = orbitRadius * Math.cos(sat.angle + sat.phaseOffset) * Math.cos(sat.inclination);
+      const y = orbitRadius * Math.sin(sat.angle + sat.phaseOffset);
+      const z = orbitRadius * Math.cos(sat.angle + sat.phaseOffset) * Math.sin(sat.inclination);
       
       sdiMeshes[idx].position.set(x, y, z);
     });
@@ -1168,50 +1151,13 @@ function initSystemMessages() {
   }, 5000);
 }
 
-// ==================== DRAGGABLE TERMINAL ====================
-function makeDraggable() {
-  const terminal = document.getElementById('terminal-container');
-  const handle = document.getElementById('terminal-drag-handle');
-  
-  if (!handle || !terminal) return;
-  
-  handle.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    dragOffset.x = e.clientX - terminal.offsetLeft;
-    dragOffset.y = e.clientY - terminal.offsetTop;
-    terminal.style.cursor = 'grabbing';
-  });
-  
-  document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
-    
-    const maxX = window.innerWidth - terminal.offsetWidth;
-    const maxY = window.innerHeight - terminal.offsetHeight;
-    
-    terminal.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
-    terminal.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
-  });
-  
-  document.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      terminal.style.cursor = 'default';
-    }
-  });
-}
-
 // ==================== RESTART GAME ====================
 function restartGame() {
-  // Clear all intervals and timeouts
   if (timerInterval) clearInterval(timerInterval);
   if (launchTimer) clearTimeout(launchTimer);
   if (systemMessagesInterval) clearInterval(systemMessagesInterval);
   if (intelligenceInterval) clearInterval(intelligenceInterval);
   
-  // Reset game state
   gameScore = 0;
   currentLevel = 0;
   gameStartTime = 0;
@@ -1224,7 +1170,6 @@ function restartGame() {
   sdiShieldActive = false;
   sdiSatellites = [];
   
-  // Clean up Three.js
   if (scene) {
     scene.children.forEach(child => {
       if (child.geometry) child.geometry.dispose();
@@ -1237,7 +1182,6 @@ function restartGame() {
     renderer = null;
   }
   
-  // Clean up SDI meshes
   sdiMeshes.forEach(mesh => {
     if (mesh.geometry) mesh.geometry.dispose();
     if (mesh.material) mesh.material.dispose();
@@ -1248,11 +1192,8 @@ function restartGame() {
   camera = null;
   globe = null;
   
-  // Reset UI
   updateAllScores();
-  
-  // Return to start screen
-  showScreen('start-screen');
+  showScreen('title-screen');
   playBeep();
 }
 
@@ -1266,6 +1207,5 @@ window.restartGame = restartGame;
 // ==================== INITIALIZE ON LOAD ====================
 document.addEventListener('DOMContentLoaded', () => {
   playBeep();
-  makeDraggable();
   loadScoreboard();
 });
