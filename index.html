@@ -1,107 +1,304 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Retro Wireframe Globe (80s style)</title>
-<style>
-  :root{ --phosphor:#3cff8f; --bg:#050807; }
-  html,body{height:100%; margin:0}
-  body{ background: var(--bg); display:grid; place-items:center; color:var(--phosphor); }
-  canvas{ width:min(90vmin,900px); height:min(90vmin,900px); display:block; }
-  /* CRT vibe (optional) */
-  body::before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient( to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.12) 3px );mix-blend-mode:multiply}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WOPR // Global Thermonuclear War (Retro UI)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --phosphor: #3cff8f;
+      --phosphor-dim: #2bdd6f;
+      --bg: #020402;
+      --amber: #ffe08a;
+      --red: #ff4d4d;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0; background: var(--bg); color: var(--phosphor);
+      font-family: 'VT323', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      letter-spacing: 0.5px; line-height:1.2;
+      overflow:hidden;
+    }
+    /* CRT feel */
+    .crt::before{ /* scanlines */
+      content:""; position:fixed; inset:0; pointer-events:none; z-index:9999;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0) 0px,
+        rgba(0,0,0,0) 2px,
+        rgba(0,0,0,0.12) 3px
+      );
+      mix-blend-mode: multiply;
+    }
+    .crt::after{ /* vignette */
+      content:""; position:fixed; inset:0; pointer-events:none; z-index:9998;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.6) 100%);
+    }
+
+    .glow { text-shadow: 0 0 6px rgba(60,255,143,0.8), 0 0 18px rgba(60,255,143,0.4); }
+    .dim  { color: var(--phosphor-dim); opacity:0.9 }
+
+    header{
+      padding: 10px 14px; border-bottom: 1px solid rgba(60,255,143,0.25);
+      display:flex; gap:16px; align-items:center; justify-content:space-between;
+    }
+    header .title{ font-size: 28px; }
+    header .status{ font-size: 18px; opacity:0.9 }
+    header .blink { animation: blink 1s steps(1,end) infinite; }
+    @keyframes blink{ 50% { opacity: 0.2 } }
+
+    main{
+      display:grid; grid-template-columns: 1.2fr 1.8fr; gap: 8px;
+      height: calc(100% - 100px);
+      padding: 8px 12px;
+    }
+
+    .panel{
+      position:relative; border: 1px solid rgba(60,255,143,0.25); border-radius: 10px;
+      padding: 12px; background: linear-gradient( to bottom, rgba(60,255,143,0.04), rgba(60,255,143,0.02) 60%, rgba(60,255,143,0.03) );
+      box-shadow: inset 0 0 24px rgba(60,255,143,0.08), 0 0 24px rgba(60,255,143,0.06);
+    }
+
+    /* Terminal */
+    #terminal{
+      height: 100%;
+      overflow: hidden;
+      display:flex; flex-direction:column;
+    }
+    #term-output{
+      flex:1; overflow:auto; padding-right:6px; white-space:pre-wrap;
+      font-size: 20px;
+    }
+    #prompt{ display:flex; gap:8px; align-items:center; }
+    #cursor{ width: 10px; height: 18px; background: var(--phosphor); box-shadow: 0 0 8px rgba(60,255,143,0.8); }
+
+    /* Radar / globe panel */
+    #globe-wrap{ position:relative; height:100%; }
+    #globe { position:absolute; inset:0; }
+
+    .overlay-stats{
+      position:absolute; left:12px; bottom:12px; font-size:16px; opacity:0.9;
+    }
+
+    footer{
+      height: 60px; display:flex; align-items:center; gap:18px; padding: 0 14px; border-top: 1px solid rgba(60,255,143,0.25);
+    }
+    .badge{ border:1px solid rgba(60,255,143,0.35); padding: 4px 10px; border-radius: 999px; font-size: 18px; }
+    .warn{ color: var(--red); text-shadow: 0 0 10px rgba(255,77,77,0.6); border-color: rgba(255,77,77,0.4) }
+    .ok{ color: var(--amber); text-shadow: 0 0 10px rgba(255,224,138,0.5) }
+
+    /* Small screens */
+    @media (max-width: 900px){
+      main{ grid-template-columns: 1fr; height: calc(100% - 120px); }
+      header .title{ font-size: 22px }
+    }
+    /* Remove default focus ring and use glow */
+    .panel:focus, #terminal:focus { outline: none; box-shadow: 0 0 0 2px rgba(60,255,143,0.35), inset 0 0 24px rgba(60,255,143,0.08); }
+  </style>
 </head>
-<body>
-<canvas id="globe"></canvas>
-<script>
-(function(){
-  const canvas = document.getElementById('globe');
+<body class="crt">
+  <header>
+    <div class="title glow">W.O.P.R // GLOBAL THERMONUCLEAR WAR</div>
+    <div class="status">CONNECTION: <span class="blink">●●●</span> SECURE LINK ESTABLISHED</div>
+  </header>
+
+  <main>
+    <section class="panel" id="terminal" tabindex="0" aria-label="Terminal (click to focus)">
+      <div id="term-output" aria-live="polite"></div>
+      <div id="prompt"><span class="dim">&gt;</span><span id="typing"></span><span id="cursor"></span></div>
+      <!-- Invisible, focusable input to reliably capture typing in all embeds/browsers -->
+      <input id="ghost-input" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal input" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;" />
+    </section>
+
+    <section class="panel" id="globe-wrap">
+      <div id="globe"></div>
+      <div class="overlay-stats dim">
+        MODE: <span class="glow">GLOBAL STRATEGY</span> | TRACKS: <span id="tracks-count">0</span> | DEFCON: <span class="warn glow">3</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="badge">NORAD // CHEYENNE MTN</div>
+    <div class="badge ok">SIM: ACTIVE</div>
+    <div class="badge">LAST INPUT: <span id="last-input">—</span></div>
+  </footer>
+
+  <!-- Three.js for the 3D globe (modern), styled to look retro -->
+  <script type="module">
+(() => {
+  // ---- Error surface ----
+  window.onerror = (msg, src, line, col, err) => {
+    const term = document.getElementById('term-output');
+    if (term) { const d = document.createElement('div'); d.style.color = '#ff4d4d'; d.textContent = '[ERROR] ' + (err && err.message ? err.message : msg); term.appendChild(d); }
+  };
+
+  // ---- Terminal ----
+  const termOut = document.getElementById('term-output');
+  const typing = document.getElementById('typing');
+  const lastInput = document.getElementById('last-input');
+  const ghost = document.getElementById('ghost-input');
+  const termEl = document.getElementById('terminal');
+
+  let inputBuffer = '';
+  let history = [];
+  let historyIndex = -1;
+  let terminalActive = false;
+
+  const bootLines = [
+    'LOGON: JOSHUA',
+    'PASSWORD: ••••••••',
+    'IDENTIFICATION NOT RECOGNIZED',
+    'OVERRIDE: LIST GAMES',
+    '',
+    'GAMES:',
+    '  BLACK JACK', '  GIN RUMMY', '  FIGHTER COMBAT', '  GUERRILLA ENGAGEMENT', '  DESERT WARFARE',
+    '  AIR-TO-GROUND ACTIONS', '  THEATERWIDE TACTICAL WARFARE', '  GLOBAL THERMONUCLEAR WAR',
+    '', 'SHALL WE PLAY A GAME? (Y/N)'
+  ];
+
+  function printLine(line = '') { const div = document.createElement('div'); div.textContent = line; termOut.appendChild(div); termOut.scrollTop = termOut.scrollHeight; }
+  function typeToPrompt(str){ typing.textContent = str; }
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  async function boot(){ for (const l of bootLines){ await wait(200); printLine(l); } }
+
+  function handleCommand(cmd){
+    const u = cmd.trim(); const U = u.toUpperCase();
+    lastInput.textContent = u || '—';
+    printLine('> ' + u);
+    if (!U) return;
+    if (U === 'HELP') {
+      printLine('COMMANDS: HELP, DEFCON, LIST, RUN <GAME>, CLEAR, STATUS');
+    } else if (U === 'LIST') {
+      for (const l of bootLines.slice(5, bootLines.length-1)) printLine(l);
+    } else if (U.startsWith('RUN ')) {
+      const game = U.slice(4);
+      if (game.includes('THERMONUCLEAR')){ printLine('LAUNCHING: GLOBAL THERMONUCLEAR WAR…'); triggerStrikeDemo(); }
+      else { printLine('SIMULATION: ' + game + ' (NOT INSTALLED)'); }
+    } else if (U === 'DEFCON') {
+      printLine('CURRENT DEFCON: 3');
+    } else if (U === 'STATUS') {
+      printLine('WOPR STATUS: IDLE; STRATEGY MODEL: ACTIVE;');
+    } else if (U === 'CLEAR') {
+      termOut.innerHTML = '';
+    } else {
+      printLine('UNKNOWN COMMAND. TYPE HELP');
+    }
+  }
+
+  function focusTerminal(){ terminalActive = true; try{ ghost.focus({preventScroll:true}); } catch { ghost.focus(); } }
+  document.addEventListener('DOMContentLoaded', () => { focusTerminal(); boot(); });
+  termEl.addEventListener('mousedown', focusTerminal);
+  termEl.addEventListener('touchstart', focusTerminal);
+  termEl.addEventListener('focus', focusTerminal);
+
+  ghost.addEventListener('input', () => { inputBuffer = ghost.value; typeToPrompt(inputBuffer); });
+  ghost.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); }
+    if (e.key === 'ArrowUp'){ if (history.length){ historyIndex = Math.min(historyIndex+1, history.length-1); inputBuffer = history[historyIndex]; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); }
+    if (e.key === 'ArrowDown'){ if (history.length){ historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); }
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    const tag = document.activeElement && document.activeElement.tagName || '';
+    if (!terminalActive || tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); return; }
+    if (e.key === 'Backspace'){ inputBuffer = inputBuffer.slice(0,-1); ghost.value=inputBuffer; typeToPrompt(inputBuffer); e.preventDefault(); return; }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown'){
+      if (history.length){ if (e.key === 'ArrowUp') historyIndex = Math.min(historyIndex+1, history.length-1); else historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); return; }
+    if (e.key.length === 1 && !e.metaKey && !e.ctrlKey){ inputBuffer += e.key; ghost.value=inputBuffer; typeToPrompt(inputBuffer); e.preventDefault(); }
+  });
+
+  // ---- Canvas globe (always available) ----
+  const wrap = document.getElementById('globe');
+  const tracksCount = document.getElementById('tracks-count');
+  const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const color = getComputedStyle(document.documentElement).getPropertyValue('--phosphor') || '#3cff8f';
+  wrap.innerHTML = ''; wrap.appendChild(canvas);
 
-  function resize(){
-    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-    const side = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-    canvas.width = Math.floor(side * dpr);
-    canvas.height = Math.floor(side * dpr);
-    canvas.style.width = Math.floor(side) + 'px';
-    canvas.style.height = Math.floor(side) + 'px';
+  function onResize(){
+    const r = wrap.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(r.width));
+    const h = Math.max(1, Math.floor(r.height));
+    if (canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
   }
-  resize(); window.addEventListener('resize', resize);
+  new ResizeObserver(onResize).observe(wrap);
+  window.addEventListener('resize', onResize);
+  onResize();
 
-  const R = 220; // logical radius in px (before perspective)
-  let rot = 0;   // rotation around Y
-
-  // perspective projection (camera at (0,0, -d) looking to +z)
-  const d = 600;
-  function proj(x,y,z){ const s = d/(d+z); return {x: cx + x*s, y: cy + y*s}; }
-  function rotY(p, a){ const ca=Math.cos(a), sa=Math.sin(a); return {x: p.x*ca - p.z*sa, y: p.y, z: p.x*sa + p.z*ca}; }
-  function latLonToXYZ(lat, lon, r){ const phi=(90-lat)*(Math.PI/180); const theta=(lon+180)*(Math.PI/180); return { x: -r*Math.sin(phi)*Math.cos(theta), y: r*Math.cos(phi), z: r*Math.sin(phi)*Math.sin(theta) }; }
-
-  // Draw a param line on sphere: either latitude or longitude
-  function drawLine(generator){
-    const steps = 360; // smoothness
-    // Build points with rotation applied
-    const pts = [];
-    for (let i=0;i<=steps;i++){
-      const t = -180 + i*(360/steps);
-      const p = generator(t);
-      const pr = rotY(p, rot);
-      pts.push(pr);
-    }
-    // First render back hemisphere (ghosted, dashed), then front solid
-    function stroke(whereBack){
-      ctx.beginPath();
-      let pen=false; let prev=null;
-      for (let i=0;i<pts.length;i++){
-        const P = pts[i];
-        const back = (P.z < 0);
-        if (back !== whereBack){ pen=false; continue; }
-        const s = proj(P.x, P.y, P.z);
-        if (!pen){ ctx.moveTo(s.x, s.y); pen=true; prev=s; continue; }
-        // avoid seam spikes (skip long jumps)
-        const dx=s.x-prev.x, dy=s.y-prev.y; if (dx*dx+dy*dy> (canvas.width*canvas.height)/200){ ctx.moveTo(s.x,s.y); prev=s; continue; }
-        ctx.lineTo(s.x, s.y); prev=s;
-      }
-      ctx.stroke();
-    }
-    // back (ghost)
-    ctx.save(); ctx.strokeStyle=color; ctx.globalAlpha=0.25; ctx.setLineDash([6,5]); ctx.lineWidth=1; ctx.lineCap='round'; stroke(true); ctx.restore();
-    // front (solid)
-    ctx.save(); ctx.strokeStyle=color; ctx.globalAlpha=0.95; ctx.setLineDash([]); ctx.lineWidth=2; ctx.lineCap='round'; stroke(false); ctx.restore();
+  const R = 160; let rot = 0; const tracks = [];
+  function triggerStrikeDemo(){
+    const cities = [
+      { name:'SEATTLE', lat:47.6062, lon:-122.3321 },
+      { name:'SAN FRANCISCO', lat:37.7749, lon:-122.4194 },
+      { name:'NEW YORK', lat:40.7128, lon:-74.0060 },
+      { name:'LONDON', lat:51.5074, lon:-0.1278 },
+      { name:'PARIS', lat:48.8566, lon:2.3522 },
+      { name:'MOSCOW', lat:55.7558, lon:37.6173 },
+      { name:'BEIJING', lat:39.9042, lon:116.4074 },
+      { name:'TOKYO', lat:35.6762, lon:139.6503 }
+    ];
+    for (let i=0;i<6;i++){ const a=cities[Math.floor(Math.random()*cities.length)], b=cities[Math.floor(Math.random()*cities.length)]; if (a!==b) addTrack(a,b, 6000+Math.random()*4000); }
   }
+
+  function addTrack(from,to,duration){ const start=Date.now(); tracks.push({from,to,start,duration,done:false}); tracksCount.textContent = tracks.filter(t=>!t.done).length; }
+  function rotY(x,z,a){ const ca=Math.cos(a), sa=Math.sin(a); return {x: x*ca - z*sa, z: x*sa + z*ca}; }
+  function latLonToXYZ(lat,lon,rad){ const phi=(90-lat)*(Math.PI/180), theta=(lon+180)*(Math.PI/180); const x = -rad*Math.sin(phi)*Math.cos(theta); const z = rad*Math.sin(phi)*Math.sin(theta); const y = rad*Math.cos(phi); return {x,y,z}; }
+  function proj(x,y,z){ const scale = 300/(300+z); return {x: canvas.width/2 + x*scale, y: canvas.height/2 + y*scale}; }
 
   function drawGraticule(){
-    // Latitudes every 15°, from -75..75 (avoid poles crowding)
-    for (let lat=-75; lat<=75; lat+=15){
-      drawLine((lon)=> latLonToXYZ(lat, lon, R));
-    }
-    // Longitudes every 15°
-    for (let lon=-180; lon<180; lon+=15){
-      drawLine((lat)=> latLonToXYZ(lat, lon, R));
-    }
+    ctx.globalAlpha=0.9; ctx.lineWidth=1; ctx.lineCap='round';
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--phosphor') || '#3cff8f';
+    function strokeFront(points){ ctx.beginPath(); let penDown=false; let prevS=null; for (let i=0;i<points.length;i++){ const p=points[i]; const r=rotY(p.x,p.z,rot); const zc=r.z; if (zc<=0){ penDown=false; prevS=null; continue; } const s=proj(r.x,p.y,zc); if (!penDown){ ctx.moveTo(s.x,s.y); penDown=true; prevS=s; continue; } const dx=s.x-prevS.x, dy=s.y-prevS.y; if (dx*dx + dy*dy > 2500){ ctx.moveTo(s.x,s.y); } else { ctx.lineTo(s.x,s.y); } prevS=s; } ctx.stroke(); }
+    for (let lat=-60; lat<=60; lat+=30){ const pts=[]; for (let lon=-180; lon<=180; lon+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
+    for (let lon=0; lon<180; lon+=20){ const pts=[]; for (let lat=-90; lat<=90; lat+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
   }
 
-  function frame(){
-    const w = canvas.width, h = canvas.height; ctx.clearRect(0,0,w,h);
-    cx = w/2; cy = h/2; // center
-
-    // Outer glow
-    const g = ctx.createRadialGradient(cx,cy, R*0.2, cx,cy, R*1.1);
-    g.addColorStop(0, 'rgba(60,255,143,0.15)'); g.addColorStop(1,'rgba(60,255,143,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,R*1.1,0,Math.PI*2); ctx.fill();
-
-    drawGraticule();
-
-    rot += 0.003; // slow spin
-    requestAnimationFrame(frame);
+  function drawTracks(){
+    const now = Date.now();
+    ctx.lineWidth=2; ctx.globalAlpha=0.9; ctx.lineCap='round'; ctx.strokeStyle='#3cff8f';
+    tracks.forEach(t=>{
+      const p1=latLonToXYZ(t.from.lat,t.from.lon,R);
+      const p2=latLonToXYZ(t.to.lat,t.to.lon,R);
+      const mid={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2 + R*0.5, z:(p1.z+p2.z)/2};
+      const steps=160; const elapsed=Math.min(1,(now-t.start)/t.duration); const endIdx=Math.floor(steps*elapsed);
+      ctx.beginPath(); let penDown=false; let prevS=null;
+      for (let i=0;i<=endIdx;i++){
+        const a=i/steps;
+        const xa=(1-a)*(1-a)*p1.x + 2*(1-a)*a*mid.x + a*a*p2.x;
+        const ya=(1-a)*(1-a)*p1.y + 2*(1-a)*a*mid.y + a*a*p2.y;
+        const za=(1-a)*(1-a)*p1.z + 2*(1-a)*a*mid.z + a*a*p2.z;
+        const r=rotY(xa,za,rot); const zc=r.z; if (zc<=0){ penDown=false; prevS=null; continue; }
+        const s=proj(r.x,ya,zc);
+        if (!penDown){ ctx.moveTo(s.x,s.y); penDown=true; prevS=s; continue; }
+        const dx=s.x-prevS.x, dy=s.y-prevS.y; if (dx*dx + dy*dy > 2500){ ctx.moveTo(s.x,s.y); } else { ctx.lineTo(s.x,s.y); } prevS=s;
+      }
+      ctx.stroke(); if (elapsed>=1) t.done=true;
+    });
+    tracksCount.textContent = tracks.filter(t=>!t.done).length;
   }
 
-  let cx=0, cy=0; // canvas center (set in frame)
-  frame();
+  function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); rot += 0.003; drawGraticule(); drawTracks(); requestAnimationFrame(draw); }
+  draw();
+  setInterval(() => triggerStrikeDemo(), 9000);
 })();
 </script>
+
+  <script>
+    // Accessibility: ensure high-contrast focus ring on key nav
+    let hadKeyboardEvent = false;
+    const mod = e=>{
+      if (e.type === 'keydown') hadKeyboardEvent = true;
+      else if (e.type === 'mousedown' || e.type === 'touchstart') hadKeyboardEvent = false;
+      document.body.classList.toggle('kbd-nav', hadKeyboardEvent);
+    };
+    window.addEventListener('keydown', mod, true);
+    window.addEventListener('mousedown', mod, true);
+    window.addEventListener('touchstart', mod, true);
+  </script>
 </body>
 </html>
