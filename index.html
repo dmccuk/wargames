@@ -3,153 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0a0a0a" />
-  <title>WOPR // Channel Operations (YouTube Analytics)</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <title>WOPR // Channel Operations</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root{ --phosphor:#33ff33; --grid:#2fa62f; --bg:#0a0a0a; }
+    body { background: var(--bg); font-family: 'VT323', monospace; color: var(--phosphor); overflow: hidden; font-size: 14px; text-shadow: 0 0 3px var(--phosphor); }
 
-    :root{
-      --phosphor:#33ff33;
-      --phosphor-soft:#2fe12f;
-      --grid:#2fa62f;
-      --bg:#0a0a0a;
-      --warn:#ffff33;
-      --error:#ff3333;
-    }
+    /* SPLASH */
+    #splash { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; transition: opacity 1s; }
+    #splash.fade-out { opacity: 0; pointer-events: none; }
+    #splash-canvas { width: 60vw; height: 60vh; max-width: 800px; max-height: 600px; }
+    #splash-log { margin-top: 30px; font-size: 16px; text-shadow: 0 0 8px var(--phosphor); min-height: 120px; text-align: center; }
+    #splash-log > div { margin: 8px 0; opacity: 0; animation: fadeIn 0.3s forwards; }
+    @keyframes fadeIn { to { opacity: 1; } }
 
-    body {
-      background: var(--bg);
-      font-family: 'VT323', monospace;
-      color: var(--phosphor);
-      overflow: hidden;
-      font-size: 14px;
-      text-shadow: 0 0 3px var(--phosphor);
-    }
-
-    /* SPLASH SCREEN */
-    #splash {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      opacity: 1;
-      transition: opacity 1s ease-out;
-    }
-    #splash.fade-out {
-      opacity: 0;
-      pointer-events: none;
-    }
-    #splash-canvas {
-      width: 60vw;
-      height: 60vh;
-      max-width: 800px;
-      max-height: 600px;
-    }
-    #splash-log {
-      margin-top: 30px;
-      font-size: 16px;
-      text-shadow: 0 0 8px var(--phosphor);
-      min-height: 120px;
-      text-align: center;
-    }
-    #splash-log > div {
-      margin: 8px 0;
-      opacity: 0;
-      animation: fadeInLine 0.3s forwards;
-    }
-    @keyframes fadeInLine {
-      to { opacity: 1; }
-    }
-
-    #header, #footer {
-      position: absolute; left: 0; right: 0;
-      padding: 10px 20px; display: flex; justify-content: space-between; align-items:center;
-      text-shadow: 0 0 8px var(--phosphor), 0 0 15px var(--phosphor);
-      z-index: 100; background: rgba(10, 10, 10, 0.9);
-      border-bottom: 2px solid var(--phosphor);
-    }
-    #footer{ bottom:0; top:auto; border-bottom:none; border-top: 2px solid var(--phosphor); }
-    #header{ top:0; gap:16px }
-
-    #main-container { position: absolute; top: 50px; bottom: 50px; left: 0; right: 0; display: block; }
+    #header, #footer { position: absolute; left: 0; right: 0; padding: 10px 20px; display: flex; justify-content: space-between; align-items:center; text-shadow: 0 0 8px var(--phosphor); z-index: 100; background: rgba(10, 10, 10, 0.9); border: 2px solid var(--phosphor); }
+    #header{ top:0; border-bottom-width:2px; border-top:none; }
+    #footer{ bottom:0; border-top-width:2px; border-bottom:none; }
+    #main-container { position: absolute; top: 50px; bottom: 50px; left: 0; right: 0; }
 
     /* DRAGGABLE TERMINAL */
-    #terminal-section {
-      position: fixed;
-      left: 10px;
-      bottom: 10px;
-      width: 28vw;
-      height: 28vh;
-      min-width: 300px;
-      min-height: 200px;
-      border: 1px solid var(--phosphor);
-      display: flex;
-      flex-direction: column;
-      background: rgba(5,15,5,0.95);
-      box-shadow: inset 0 0 24px rgba(51,255,51,0.08), 0 0 20px rgba(51,255,51,0.2);
-      overflow: hidden;
-      z-index: 200;
-    }
-    #term-handle {
-      background: rgba(0, 30, 0, 0.9);
-      border-bottom: 1px solid var(--phosphor);
-      padding: 6px 10px;
-      cursor: move;
-      user-select: none;
-      font-size: 13px;
-      text-shadow: 0 0 6px var(--phosphor);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    #term-handle:active {
-      cursor: grabbing;
-    }
-    #terminal-output { flex: 1; overflow-y: auto; padding: 10px; letter-spacing: 1px; font-size: 12px; }
-    #terminal-output::-webkit-scrollbar { width: 8px; }
-    #terminal-output::-webkit-scrollbar-track { background: #001100; }
-    #terminal-output::-webkit-scrollbar-thumb { background: var(--phosphor); }
+    #terminal-section { position: fixed; left: 10px; bottom: 10px; width: 400px; height: 300px; border: 1px solid var(--phosphor); display: flex; flex-direction: column; background: rgba(5,15,5,0.95); box-shadow: 0 0 20px rgba(51,255,51,0.2); z-index: 200; }
+    #term-handle { background: rgba(0, 30, 0, 0.9); border-bottom: 1px solid var(--phosphor); padding: 6px 10px; cursor: move; user-select: none; font-size: 13px; display: flex; justify-content: space-between; }
+    #term-handle:active { cursor: grabbing; }
+    #terminal-output { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; }
     #input-line { padding: 6px 10px; border-top: 1px solid var(--phosphor); display:flex; align-items:center; gap:6px; background: rgba(0, 20, 0, 0.5); }
     #command-input { flex:1; background: transparent; border: none; color: var(--phosphor); font-family: 'VT323', monospace; font-size: 14px; outline: none; }
-    #command-input:focus { outline: 2px dashed #7aff7a; outline-offset: 2px; }
-
-    /* Right visuals grid */
-    #right { position:absolute; inset:0; padding: 10px; background: rgba(5, 15, 5, 0.5); display:grid; grid-template-rows: 1.25fr 1fr; gap: 10px; }
-    #top-row { display:grid; grid-template-columns: 2fr 1fr; gap:10px; }
-    #bottom-row { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
-
-    .monitor-box { border: 1px solid var(--phosphor); background: #000; position: relative; box-shadow: inset 0 0 18px rgba(51,255,51,0.08); overflow:hidden; }
-    .monitor-title { position: absolute; top: 5px; left: 10px; font-size: 13px; text-shadow: 0 0 6px var(--phosphor); z-index: 10; }
-    .scan-line { position:absolute; inset:0; background: linear-gradient(to bottom, transparent 50%, rgba(51,255,51,0.03) 51%); background-size: 100% 3px; pointer-events:none; z-index: 5; animation: scan 8s linear infinite; }
-    @keyframes scan { 0% { transform: translateY(0); } 100% { transform: translateY(3px); } }
-    canvas { display:block; width:100%; height:100%; }
-
-    .legend { position:absolute; right:10px; top:6px; font-size:12px; opacity:.85 }
-    .badge { border:1px solid var(--phosphor); padding:1px 6px; margin-left:6px; font-size:12px; }
-
-    .cursor { display:inline-block; width:8px; height:14px; background: var(--phosphor); animation: blink 1s infinite; box-shadow:0 0 6px var(--phosphor); }
-    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-
-    @media (prefers-reduced-motion: reduce) { .scan-line{animation:none} .cursor{animation:none} }
-
-    .tip{ position:absolute; background:#001100; border:1px solid var(--phosphor); padding:4px 6px; font-size:12px; pointer-events:none; transform:translate(-50%,-110%); white-space:nowrap; display:none; z-index:1000; }
-
-    .controls { display:flex; align-items:center; gap:12px }
-    label.badge[for="json-input"] { cursor:pointer; }
     
-    .error { color: var(--error); text-shadow: 0 0 6px var(--error); }
-    .warning { color: var(--warn); text-shadow: 0 0 6px var(--warn); }
+    #right { position:absolute; inset:0; padding: 10px; display:grid; grid-template-rows: 2fr 1fr; gap: 10px; }
+    .monitor-box { border: 1px solid var(--phosphor); background: #000; position: relative; overflow:hidden; }
+    .monitor-title { position: absolute; top: 5px; left: 10px; font-size: 13px; z-index: 10; }
+    canvas { display:block; width:100%; height:100%; }
+    .cursor { display:inline-block; width:8px; height:14px; background: var(--phosphor); animation: blink 1s infinite; }
+    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
   </style>
 </head>
 <body>
-  <!-- SPLASH SCREEN -->
   <div id="splash">
     <canvas id="splash-canvas"></canvas>
     <div id="splash-log"></div>
@@ -157,74 +47,42 @@
 
   <div id="header">
     <div>W.O.P.R // CHANNEL OPERATIONS</div>
-    <div class="controls">
-      CONNECTION: <span id="connection-status">STANDBY</span>
-      <label class="badge" for="json-input">IMPORT JSON</label>
-      <input id="json-input" type="file" accept="application/json" style="display:none" />
-    </div>
+    <div>CONNECTION: <span id="status">INITIALIZING</span></div>
   </div>
 
   <div id="main-container">
-    <!-- Draggable Terminal -->
     <section id="terminal-section">
       <div id="term-handle">
         <span>WOPR CONSOLE</span>
         <span style="font-size:11px; opacity:0.7;">DRAG TO MOVE</span>
       </div>
-      <div id="terminal-output" role="log" aria-live="polite" aria-atomic="false"></div>
+      <div id="terminal-output"></div>
       <div id="input-line">
-        <span id="prompt">&gt;</span>
-        <input type="text" id="command-input" placeholder="Type HELP for commands" />
+        <span>&gt;</span>
+        <input type="text" id="command-input" placeholder="Type HELP" />
         <span class="cursor"></span>
       </div>
     </section>
 
-    <!-- Right: Visuals -->
     <section id="right">
-      <div id="top-row">
-        <div id="world-box" class="monitor-box">
-          <div class="monitor-title" id="world-title">GLOBAL THEATER // AUDIENCE BY COUNTRY</div>
-          <div class="legend">metric <span class="badge" id="metric-badge">Views</span></div>
-          <div class="scan-line"></div>
-          <canvas id="world-canvas"></canvas>
-          <div id="tip-world" class="tip"></div>
-        </div>
-        <div id="overview-box" class="monitor-box">
-          <div class="monitor-title" id="overview-title">CHANNEL OVERVIEW (28D)</div>
-          <div class="scan-line"></div>
-          <canvas id="overview-canvas"></canvas>
-        </div>
+      <div class="monitor-box">
+        <div class="monitor-title">GLOBAL THEATER</div>
+        <canvas id="world-canvas"></canvas>
       </div>
-      <div id="bottom-row">
-        <div id="top-countries-box" class="monitor-box">
-          <div class="monitor-title" id="top-box-title">TOP COUNTRIES</div>
-          <div class="scan-line"></div>
-          <canvas id="countries-canvas"></canvas>
-        </div>
-        <div id="country-detail-box" class="monitor-box">
-          <div class="monitor-title" id="detail-box-title">COUNTRY DETAIL</div>
-          <div class="scan-line"></div>
-          <canvas id="country-canvas"></canvas>
-        </div>
-        <div id="timeseries-box" class="monitor-box">
-          <div class="monitor-title" id="ts-title">TIME SERIES</div>
-          <div class="scan-line"></div>
-          <canvas id="timeseries-canvas"></canvas>
-        </div>
+      <div class="monitor-box">
+        <div class="monitor-title">ANALYTICS OVERVIEW</div>
+        <canvas id="chart-canvas"></canvas>
       </div>
     </section>
   </div>
 
   <div id="footer">
     <div>NORAD // CHEYENNE MTN</div>
-    <div>TRACKS: <span id="track-count">0</span> | DEFCON: <span id="defcon">5</span></div>
-    <div>LAST INPUT: <span id="last-input">-</span></div>
+    <div>DEFCON: <span id="defcon">5</span></div>
   </div>
 
   <script>
-  // =========================
-  // SPLASH SCREEN BOOT SEQUENCE
-  // =========================
+  // SPLASH BOOT
   const splash = document.getElementById('splash');
   const splashCanvas = document.getElementById('splash-canvas');
   const splashLog = document.getElementById('splash-log');
@@ -236,9 +94,8 @@
     'ESTABLISHING SECURE LINK...',
     'CONNECTING TO NORAD: CHEYENNE MTN...',
     'INITIALIZING GLOBAL THEATER MAP...',
-    'LINKING YOUTUBE ANALYTICS API...',
     'SYSTEM DIAGNOSTICS: PASSED',
-    'W.O.P.R ONLINE // CHANNEL OPERATIONS READY'
+    'W.O.P.R ONLINE // READY'
   ];
 
   function fitSplashCanvas() {
@@ -250,7 +107,7 @@
     splashCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function drawSplashWorld() {
+  function drawSplashGlobe() {
     const w = splashCanvas.clientWidth;
     const h = splashCanvas.clientHeight;
     splashCtx.clearRect(0, 0, w, h);
@@ -274,21 +131,17 @@
     }
     splashCtx.restore();
     
-    // Simple wireframe globe
+    // Wireframe globe
     splashCtx.save();
     splashCtx.strokeStyle = '#33ff33';
     splashCtx.globalAlpha = 0.6;
     splashCtx.lineWidth = 1;
-    const cx = w / 2;
-    const cy = h / 2;
-    const r = Math.min(w, h) * 0.35;
+    const cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.35;
     
-    // Circles
     splashCtx.beginPath();
     splashCtx.arc(cx, cy, r, 0, Math.PI * 2);
     splashCtx.stroke();
     
-    // Latitude lines
     for(let i = 1; i < 6; i++) {
       const ry = r * Math.sin(i * Math.PI / 6);
       splashCtx.beginPath();
@@ -296,7 +149,6 @@
       splashCtx.stroke();
     }
     
-    // Longitude lines
     for(let i = 0; i < 6; i++) {
       splashCtx.beginPath();
       splashCtx.ellipse(cx, cy, r * Math.abs(Math.cos(i * Math.PI / 6)), r, 0, 0, Math.PI * 2);
@@ -311,36 +163,30 @@
     line.textContent = bootMessages[index];
     splashLog.appendChild(line);
     
-    const nextDelay = 350 + Math.random() * 300;
-    setTimeout(() => typeLogLine(index + 1), nextDelay);
+    setTimeout(() => typeLogLine(index + 1), 350 + Math.random() * 300);
   }
 
-  function startBootSequence() {
+  function startBoot() {
     fitSplashCanvas();
-    drawSplashWorld();
+    drawSplashGlobe();
     typeLogLine(0);
     
-    const totalDuration = 5000 + Math.random() * 3000;
     setTimeout(() => {
       splash.classList.add('fade-out');
       setTimeout(() => {
         splash.style.display = 'none';
-        initMainApp();
+        initApp();
       }, 1000);
-    }, totalDuration);
+    }, 5000 + Math.random() * 2000);
   }
 
-  // =========================
   // DRAGGABLE TERMINAL
-  // =========================
   function makeDraggable(panel, handle) {
-    let isDragging = false;
-    let startX, startY, startLeft, startTop;
+    let isDragging = false, startX, startY, startLeft, startTop;
     
-    // Load saved position
-    const savedPos = localStorage.getItem('terminal-position');
-    if(savedPos) {
-      const {left, top} = JSON.parse(savedPos);
+    const saved = localStorage.getItem('term-pos');
+    if(saved) {
+      const {left, top} = JSON.parse(saved);
       panel.style.left = left + 'px';
       panel.style.top = top + 'px';
       panel.style.bottom = 'auto';
@@ -353,25 +199,16 @@
       const rect = panel.getBoundingClientRect();
       startLeft = rect.left;
       startTop = rect.top;
-      panel.style.bottom = 'auto'; // Switch to top-based positioning
+      panel.style.bottom = 'auto';
       e.preventDefault();
     });
     
     window.addEventListener('mousemove', (e) => {
       if(!isDragging) return;
-      
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      
-      let newLeft = startLeft + dx;
-      let newTop = startTop + dy;
-      
-      // Clamp to viewport
-      const maxLeft = window.innerWidth - panel.offsetWidth;
-      const maxTop = window.innerHeight - panel.offsetHeight;
-      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-      newTop = Math.max(0, Math.min(newTop, maxTop));
-      
+      let newLeft = startLeft + (e.clientX - startX);
+      let newTop = startTop + (e.clientY - startY);
+      newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - panel.offsetWidth));
+      newTop = Math.max(0, Math.min(newTop, window.innerHeight - panel.offsetHeight));
       panel.style.left = newLeft + 'px';
       panel.style.top = newTop + 'px';
     });
@@ -379,8 +216,7 @@
     window.addEventListener('mouseup', () => {
       if(isDragging) {
         isDragging = false;
-        // Save position
-        localStorage.setItem('terminal-position', JSON.stringify({
+        localStorage.setItem('term-pos', JSON.stringify({
           left: parseInt(panel.style.left),
           top: parseInt(panel.style.top)
         }));
@@ -388,199 +224,160 @@
     });
   }
 
-  // =========================
-  // MAIN APP (existing code)
-  // =========================
-  const terminalOutput = document.getElementById('terminal-output');
-  const commandInput = document.getElementById('command-input');
-  const lastInputDisplay = document.getElementById('last-input');
-  const defconDisplay = document.getElementById('defcon');
-  const connectionStatus = document.getElementById('connection-status');
-  const trackCountDisplay = document.getElementById('track-count');
-  const metricBadge = document.getElementById('metric-badge');
-  const jsonInput = document.getElementById('json-input');
-
-  const topBoxTitle = document.getElementById('top-box-title');
-  const detailBoxTitle = document.getElementById('detail-box-title');
-  const worldTitle = document.getElementById('world-title');
-  const overviewTitle = document.getElementById('overview-title');
-
+  // MAIN APP
+  const termOut = document.getElementById('terminal-output');
+  const cmdInput = document.getElementById('command-input');
   const worldCanvas = document.getElementById('world-canvas');
-  const overviewCanvas = document.getElementById('overview-canvas');
-  const countriesCanvas = document.getElementById('countries-canvas');
-  const countryCanvas = document.getElementById('country-canvas');
-  const timeseriesCanvas = document.getElementById('timeseries-canvas');
-
+  const chartCanvas = document.getElementById('chart-canvas');
   const worldCtx = worldCanvas.getContext('2d');
-  const overviewCtx = overviewCanvas.getContext('2d');
-  const countriesCtx = countriesCanvas.getContext('2d');
-  const countryCtx = countryCanvas.getContext('2d');
-  const timeseriesCtx = timeseriesCanvas.getContext('2d');
+  const chartCtx = chartCanvas.getContext('2d');
 
-  const tipWorld = document.getElementById('tip-world');
+  function print(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    termOut.appendChild(div);
+    termOut.scrollTop = termOut.scrollHeight;
+  }
 
-  function fitCanvas(c, ctx){
+  function fitCanvas(c, ctx) {
     const dpr = window.devicePixelRatio || 1;
-    const cw = c.clientWidth || c.parentElement.clientWidth;
-    const ch = c.clientHeight || c.parentElement.clientHeight;
-    c.width = Math.max(1, Math.floor(cw * dpr));
-    c.height = Math.max(1, Math.floor(ch * dpr));
-    c.style.width = cw+'px';
-    c.style.height = ch+'px';
+    const w = c.clientWidth, h = c.clientHeight;
+    c.width = w * dpr;
+    c.height = h * dpr;
+    c.style.width = w + 'px';
+    c.style.height = h + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function resizeAll(){
-    fitCanvas(worldCanvas, worldCtx);
-    fitCanvas(overviewCanvas, overviewCtx);
-    fitCanvas(countriesCanvas, countriesCtx);
-    fitCanvas(countryCanvas, countryCtx);
-    fitCanvas(timeseriesCanvas, timeseriesCtx);
-    drawAll();
-  }
-  window.addEventListener('resize', () => requestAnimationFrame(resizeAll));
-
-  let defconLevel = 5; let trackCount=0;
-  let worldGeo = null;
-  let metric = 'views';
-  let days = 28;
-  let dataMode = 'LIVE';
-  let viewMode = 'GEO';
-  let channelTitle = null;
-
-  const analytics = {
-    overview:null,
-    countries:[],
-    countryDetail:{ code:null, name:'', cities:[] },
-    timeseries:[],
-    topAllTime:[],
-    mostWatchedRecent: null
-  };
-
-  const iso2ToNameOverride = {
-    'US':'United States of America', 'GB':'United Kingdom', 'RU':'Russian Federation',
-    'CI':'Côte d\'Ivoire', 'CD':'Democratic Republic of the Congo', 'CG':'Republic of the Congo',
-    'KR':'Republic of Korea', 'KP':'Democratic People\'s Republic of Korea', 'LA':'Lao PDR'
-  };
-
-  function printLine(text, className=''){
-    const div = document.createElement('div');
-    div.className = className; div.textContent = text; terminalOutput.appendChild(div);
-    terminalOutput.scrollTop = terminalOutput.scrollHeight;
-  }
-  function setDefcon(n){ defconLevel = Math.max(1,Math.min(5,n)); defconDisplay.textContent = defconLevel; }
-
-  window.addEventListener('error', (e)=>{ printLine('JS ERROR: '+(e.message||'Unknown error'), 'error'); });
-
-  function strokeNeon(ctx, draw){
-    ctx.save();
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.shadowColor='#2fe12f';
-    ctx.shadowBlur=4; ctx.globalAlpha=.35; ctx.strokeStyle='#2fe12f'; ctx.lineWidth=1.1; draw(); ctx.stroke();
-    ctx.shadowBlur=0; ctx.globalAlpha=.9; ctx.lineWidth=.7; ctx.strokeStyle='rgba(47,225,47,0.9)'; draw(); ctx.stroke();
-    ctx.restore();
-  }
-  function project(lon, lat, w, h){ const x=(lon+180)/360*w; const y=(90-lat)/180*h; return [x,y]; }
-
-  function drawWorld(ctx,w,h){
-    ctx.clearRect(0,0,w,h);
-    ctx.save(); ctx.strokeStyle='#2fa62f'; ctx.globalAlpha=.12; ctx.lineWidth=0.6;
-    for(let i=0;i<=20;i++){ ctx.beginPath(); ctx.moveTo(i*w/20,0); ctx.lineTo(i*w/20,h); ctx.stroke(); }
-    for(let i=0;i<=12;i++){ ctx.beginPath(); ctx.moveTo(0,i*h/12); ctx.lineTo(w,i*h/12); ctx.stroke(); }
-    ctx.restore();
-
-    if(!worldGeo) return;
-
-    worldGeo.features.forEach(f=>{
-      const g=f.geometry; const drawRing=(ring)=>{ ctx.beginPath(); for(let i=0;i<ring.length;i++){ const [lon,lat]=ring[i]; const [x,y]=project(lon,lat,w,h); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);} };
-      if(g.type==='Polygon'){ strokeNeon(ctx, () => drawRing(g.coordinates[0])); }
-      else if(g.type==='MultiPolygon'){ g.coordinates.forEach(poly => strokeNeon(ctx, () => drawRing(poly[0]))); }
-    });
-
-    if(viewMode==='GEO' && analytics.countries && analytics.countries.length){
-      const maxVal = Math.max(1, ...analytics.countries.map(c=>c.value));
-      analytics.countries.forEach(c=>{
-        const feat = findCountryFeatureByCodeOrName(c.countryCode, c.countryName);
-        if(!feat) return;
-        const [cx,cy] = centroidOfFeature(feat,w,h);
-        const r = 3 + 12 * (c.value / maxVal);
-        ctx.save();
-        ctx.strokeStyle = '#ffff33'; ctx.lineWidth = 1; ctx.globalAlpha=.35;
-        ctx.beginPath(); ctx.arc(cx, cy, r*1.25, 0, Math.PI*2); ctx.stroke();
-        ctx.globalAlpha=1; ctx.fillStyle = '#33ff33'; ctx.beginPath(); ctx.arc(cx, cy, Math.max(2, r*0.45), 0, Math.PI*2); ctx.fill();
-        ctx.restore();
-      });
+  function drawWorld() {
+    const w = worldCanvas.clientWidth, h = worldCanvas.clientHeight;
+    worldCtx.clearRect(0, 0, w, h);
+    
+    worldCtx.save();
+    worldCtx.strokeStyle = '#2fa62f';
+    worldCtx.globalAlpha = 0.12;
+    worldCtx.lineWidth = 0.6;
+    for(let i = 0; i <= 20; i++) {
+      worldCtx.beginPath();
+      worldCtx.moveTo(i * w / 20, 0);
+      worldCtx.lineTo(i * w / 20, h);
+      worldCtx.stroke();
     }
+    for(let i = 0; i <= 12; i++) {
+      worldCtx.beginPath();
+      worldCtx.moveTo(0, i * h / 12);
+      worldCtx.lineTo(w, i * h / 12);
+      worldCtx.stroke();
+    }
+    worldCtx.restore();
+    
+    // Simple continent outlines
+    worldCtx.save();
+    worldCtx.strokeStyle = '#33ff33';
+    worldCtx.globalAlpha = 0.6;
+    worldCtx.lineWidth = 1;
+    
+    // North America
+    worldCtx.beginPath();
+    worldCtx.moveTo(w*0.15, h*0.2);
+    worldCtx.lineTo(w*0.25, h*0.15);
+    worldCtx.lineTo(w*0.3, h*0.35);
+    worldCtx.lineTo(w*0.2, h*0.5);
+    worldCtx.lineTo(w*0.15, h*0.2);
+    worldCtx.stroke();
+    
+    // Europe
+    worldCtx.beginPath();
+    worldCtx.moveTo(w*0.48, h*0.25);
+    worldCtx.lineTo(w*0.52, h*0.22);
+    worldCtx.lineTo(w*0.55, h*0.3);
+    worldCtx.lineTo(w*0.48, h*0.25);
+    worldCtx.stroke();
+    
+    worldCtx.restore();
   }
 
-  function centroidOfFeature(feat,w,h){
-    let sumX=0,sumY=0,n=0; const g=feat.geometry; const consume=(ring)=>{ ring.forEach(([lon,lat])=>{ const [x,y]=project(lon,lat,w,h); sumX+=x; sumY+=y; n++; }); };
-    if(g.type==='Polygon') consume(g.coordinates[0]); else if(g.type==='MultiPolygon') consume(g.coordinates[0][0]);
-    if(n===0) return [w/2,h/2]; return [sumX/n, sumY/n];
+  function drawChart() {
+    const w = chartCanvas.clientWidth, h = chartCanvas.clientHeight;
+    chartCtx.clearRect(0, 0, w, h);
+    
+    chartCtx.save();
+    chartCtx.strokeStyle = '#2fa62f';
+    chartCtx.globalAlpha = 0.1;
+    chartCtx.lineWidth = 0.6;
+    for(let i = 0; i <= 10; i++) {
+      chartCtx.beginPath();
+      chartCtx.moveTo(i * w / 10, 0);
+      chartCtx.lineTo(i * w / 10, h);
+      chartCtx.stroke();
+    }
+    for(let i = 0; i <= 6; i++) {
+      chartCtx.beginPath();
+      chartCtx.moveTo(0, i * h / 6);
+      chartCtx.lineTo(w, i * h / 6);
+      chartCtx.stroke();
+    }
+    chartCtx.restore();
+    
+    // Sample bars
+    chartCtx.save();
+    chartCtx.fillStyle = '#33ff33';
+    chartCtx.globalAlpha = 0.7;
+    const barW = 40, gap = 20;
+    for(let i = 0; i < 5; i++) {
+      const barH = (50 + Math.random() * 150);
+      chartCtx.fillRect(50 + i * (barW + gap), h - 40 - barH, barW, barH);
+    }
+    chartCtx.restore();
   }
 
-  function findCountryFeatureByCodeOrName(code, name){
-    if(!worldGeo) return null;
-    let targetName = name;
-    if(code && iso2ToNameOverride[code]) targetName = iso2ToNameOverride[code];
-    const upper = (targetName||'').toUpperCase();
-    return worldGeo.features.find(f=>{
-      const p=f.properties||{}; const n=(p.ADMIN||p.name||'').toUpperCase();
-      if(upper && n===upper) return true;
-      if(code){ if(p.ISO_A2 && p.ISO_A2.toUpperCase()===code) return true; if(p.iso_a2 && p.iso_a2.toUpperCase()===code) return true; if(p.ISO2 && p.ISO2.toUpperCase()===code) return true; }
-      return false;
-    })||null;
+  function redraw() {
+    fitCanvas(worldCanvas, worldCtx);
+    fitCanvas(chartCanvas, chartCtx);
+    drawWorld();
+    drawChart();
   }
 
-  function clearAndGrid(ctx,w,h,cols=10,rows=6){
-    ctx.clearRect(0,0,w,h);
-    ctx.save(); ctx.strokeStyle='#2fa62f'; ctx.lineWidth=0.6; ctx.globalAlpha=.10;
-    for(let i=0;i<=cols;i++){ ctx.beginPath(); ctx.moveTo(i*w/cols,0); ctx.lineTo(i*w/cols,h); ctx.stroke(); }
-    for(let i=0;i<=rows;i++){ ctx.beginPath(); ctx.moveTo(0,i*h/rows); ctx.lineTo(w,i*h/rows); ctx.stroke(); }
-    ctx.restore();
+  function initApp() {
+    document.getElementById('status').textContent = 'ONLINE';
+    print('WOPR CHANNEL OPERATIONS CONSOLE');
+    print('TYPE HELP FOR COMMANDS');
+    print('');
+    
+    makeDraggable(
+      document.getElementById('terminal-section'),
+      document.getElementById('term-handle')
+    );
+    
+    redraw();
+    window.addEventListener('resize', redraw);
   }
 
-  function drawBars(ctx, data, labelAccessor, valueAccessor){
-    const w=ctx.canvas.clientWidth, h=ctx.canvas.clientHeight; clearAndGrid(ctx,w,h,10,6);
-    if(!data || !data.length) return;
-    const vals = data.map(valueAccessor); const max = Math.max(1, ...vals);
-    const gap = 6; const leftPad = 40; const rightPad = 20;
-    const usableW = Math.max(1, w - leftPad - rightPad);
-    const barW = Math.max(6, Math.min(22, Math.floor(usableW / Math.max(1,data.length)) - gap));
-    const baseY = h-34; const chartH = h-68;
-    ctx.save(); ctx.textAlign='center'; ctx.font='12px VT323';
-    data.forEach((d,i)=>{
-      const v = Number(valueAccessor(d))||0;
-      const x = leftPad + i*(barW+gap) + barW/2;
-      const bh = (v/max)*chartH;
-      ctx.save(); ctx.translate(x, baseY-bh);
-      strokeNeon(ctx, () => { ctx.beginPath(); ctx.rect(-barW/2, 0, barW, bh); });
-      ctx.restore();
-      const label = String(labelAccessor(d)??'').slice(0,22);
-      ctx.save(); ctx.translate(x, h-10); ctx.rotate(-Math.PI/2);
-      ctx.fillStyle='#2fe12f'; ctx.globalAlpha=.9; ctx.fillText(label, 0, 0);
-      ctx.restore();
-    });
-    ctx.restore();
-  }
+  cmdInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') {
+      const cmd = cmdInput.value.trim().toUpperCase();
+      if(cmd) {
+        print('> ' + cmd);
+        if(cmd === 'HELP') {
+          print('AVAILABLE COMMANDS:');
+          print('  HELP - Show commands');
+          print('  STATUS - System status');
+          print('  CLEAR - Clear terminal');
+        } else if(cmd === 'STATUS') {
+          print('SYSTEM STATUS: OPERATIONAL');
+          print('DEFCON: 5');
+        } else if(cmd === 'CLEAR') {
+          termOut.innerHTML = '';
+        } else {
+          print('UNKNOWN COMMAND');
+        }
+        print('');
+        cmdInput.value = '';
+      }
+    }
+  });
 
-  function drawLine(ctx, points){
-    const w=ctx.canvas.clientWidth, h=ctx.canvas.clientHeight; clearAndGrid(ctx,w,h,12,6);
-    if(!points || points.length<2) return;
-    const vals = points.map(p=>Number(p.value)||0); const max = Math.max(1, ...vals);
-    const xStep = (w-60)/(points.length-1); const baseY=h-30; const chartH=h-60;
-    ctx.save();
-    ctx.beginPath();
-    points.forEach((p,i)=>{ const x=30+i*xStep; const y=baseY - ((Number(p.value)||0)/max)*chartH; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
-    ctx.strokeStyle='rgba(47,225,47,0.9)'; ctx.lineWidth=1; ctx.globalAlpha=.9; ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawAll(){
-    if(viewMode==='GEO'){
-      topBoxTitle.textContent = 'TOP COUNTRIES';
-      detailBoxTitle.textContent = 'COUNTRY DETAIL';
-      worldTitle.textContent = 'GLOBAL THEATER // AUDIENCE BY COUNTRY';
-    } else {
-      topBoxTitle.textContent = 'TOP 5 VIDEOS (ALL-TIME)';
-      detailBoxTitle
+  startBoot();
+  </script>
+</body>
+</html>
