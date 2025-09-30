@@ -16,8 +16,9 @@ let mapCanvas, mapCtx;
 let systemMessagesInterval = null;
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
-let sdiActive = false;
+let sdiShieldActive = false;
 let sdiSatellites = [];
+let sdiMeshes = [];
 let intelligenceInterval = null;
 let scoreboard = [];
 
@@ -32,8 +33,8 @@ const countries = {
   JAPAN: { lat: 36.2048, lon: 138.2529 },
   CANADA: { lat: 56.1304, lon: -106.3468 },
   AUSTRALIA: { lat: -25.2744, lon: 133.7751 },
-  UK_TRIDENT: { lat: 20.0, lon: -160.0, mobile: true }, // Pacific patrol
-  UK_SUB_ATLANTIC: { lat: 40.0, lon: -30.0, mobile: true } // Atlantic patrol
+  UK_TRIDENT: { lat: 20.0, lon: -160.0, mobile: true },
+  UK_SUB_ATLANTIC: { lat: 40.0, lon: -30.0, mobile: true }
 };
 
 const puzzles = [
@@ -168,6 +169,21 @@ function playDialTone() {
   gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
   osc.start(audioContext.currentTime);
   osc.stop(audioContext.currentTime + 0.15);
+}
+
+function playLaser() {
+  const duration = 0.3;
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  osc.connect(gain);
+  gain.connect(audioContext.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(800, audioContext.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + duration);
+  gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+  osc.start(audioContext.currentTime);
+  osc.stop(audioContext.currentTime + duration);
 }
 
 // ==================== UTILITY FUNCTIONS ====================
@@ -394,11 +410,12 @@ function startLevel5() {
   addTerminalLine('W.O.P.R SYSTEM ONLINE');
   addTerminalLine('INITIALIZING GLOBAL THERMONUCLEAR WAR SIMULATION');
   addTerminalLine('');
+  addTerminalLine('SDI SATELLITES DETECTED IN ORBIT');
   addTerminalLine('MISSILE LAUNCH CONTROL ACTIVATED');
   addTerminalLine('');
   addTerminalLine('COMMANDS AVAILABLE:');
   addTerminalLine('  LAUNCH [SOURCE] [TARGET] [COUNT] - Fire missiles');
-  addTerminalLine('  SDI BUILD - Activate Star Wars defense');
+  addTerminalLine('  SDI SHIELD - Activate defensive interceptors');
   addTerminalLine('  LIST - Show countries');
   addTerminalLine('  STATUS - System status');
   addTerminalLine('  AUTO - Enable auto-retaliation');
@@ -413,6 +430,7 @@ function startLevel5() {
   initSystemMessages();
   startIntelligenceReports();
   startSubmarinePatrol();
+  createSDISatellites(); // Create satellites from start
 
   launchTimer = setTimeout(() => {
     endGame();
@@ -420,9 +438,31 @@ function startLevel5() {
 }
 
 // ==================== SDI SYSTEM ====================
-function activateSDI() {
-  if (sdiActive) {
-    addTerminalLine('SDI SYSTEM ALREADY ACTIVE');
+function createSDISatellites() {
+  // Create 8 satellites visible from the start
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    sdiSatellites.push({
+      angle: angle,
+      speed: 0.01,
+      active: true
+    });
+    
+    const satGeometry = new THREE.SphereGeometry(0.04, 8, 8);
+    const satMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x00ffff,
+      emissive: 0x00ffff,
+      emissiveIntensity: 0.5
+    });
+    const satMesh = new THREE.Mesh(satGeometry, satMaterial);
+    scene.add(satMesh);
+    sdiMeshes.push(satMesh);
+  }
+}
+
+function activateSDIShield() {
+  if (sdiShieldActive) {
+    addTerminalLine('SDI SHIELD ALREADY ACTIVE');
     return;
   }
   
@@ -433,24 +473,15 @@ function activateSDI() {
   }
   
   gameScore -= 5000;
-  sdiActive = true;
+  sdiShieldActive = true;
   addTerminalLine('');
-  addTerminalLine('DEPLOYING SDI ORBITAL DEFENSE PLATFORM...');
-  addTerminalLine('SATELLITE CONSTELLATION ACTIVATING...');
+  addTerminalLine('ACTIVATING SDI DEFENSIVE SHIELD...');
+  addTerminalLine('SATELLITE WEAPONS ONLINE');
+  addTerminalLine('INTERCEPTOR TARGETING: USA');
   playSuccess();
   
-  // Create 8 satellites in orbit
-  for (let i = 0; i < 8; i++) {
-    const angle = (i / 8) * Math.PI * 2;
-    sdiSatellites.push({
-      angle: angle,
-      speed: 0.01,
-      active: true
-    });
-  }
-  
   setTimeout(() => {
-    addTerminalLine('SDI SYSTEM ONLINE - 8 SATELLITES DEPLOYED');
+    addTerminalLine('SDI SHIELD ACTIVE - USA PROTECTED');
     addTerminalLine('');
     updateNoradStatus();
   }, 1500);
@@ -459,12 +490,26 @@ function activateSDI() {
 function showSDIStatus() {
   addTerminalLine('');
   addTerminalLine('SDI SYSTEM STATUS:');
-  addTerminalLine(`STATUS: ${sdiActive ? 'ACTIVE' : 'OFFLINE'}`);
-  if (sdiActive) {
-    addTerminalLine(`SATELLITES: ${sdiSatellites.filter(s => s.active).length}/8`);
-    addTerminalLine('INTERCEPT CAPABILITY: OPERATIONAL');
+  addTerminalLine(`SATELLITES: ${sdiSatellites.filter(s => s.active).length}/8 OPERATIONAL`);
+  addTerminalLine(`SHIELD: ${sdiShieldActive ? 'ACTIVE (PROTECTING USA)' : 'OFFLINE'}`);
+  if (sdiShieldActive) {
+    addTerminalLine('INTERCEPT MODE: AUTOMATED');
   }
   addTerminalLine('');
+}
+
+function attemptIntercept(missile) {
+  if (!sdiShieldActive) return false;
+  if (missile.target.lat !== countries.USA.lat) return false; // Only protect USA
+  
+  if (Math.random() < 0.7) { // 70% success rate
+    missile.intercepted = true;
+    addTerminalLine('[SDI] MISSILE INTERCEPTED - THREAT NEUTRALIZED');
+    playLaser();
+    addScore(200);
+    return true;
+  }
+  return false;
 }
 
 // ==================== INTELLIGENCE REPORTS ====================
@@ -481,7 +526,7 @@ const intelligenceReports = [
 
 function startIntelligenceReports() {
   intelligenceInterval = setInterval(() => {
-    if (Math.random() < 0.3) { // 30% chance
+    if (Math.random() < 0.3) {
       const report = intelligenceReports[Math.floor(Math.random() * intelligenceReports.length)];
       addTerminalLine(`[INTEL] ${report}`);
     }
@@ -491,22 +536,19 @@ function startIntelligenceReports() {
 // ==================== SUBMARINE PATROL ====================
 function startSubmarinePatrol() {
   setInterval(() => {
-    // Move UK submarines
     if (countries.UK_TRIDENT) {
       countries.UK_TRIDENT.lat += (Math.random() - 0.5) * 2;
       countries.UK_TRIDENT.lon += (Math.random() - 0.5) * 2;
-      // Keep in Pacific
       countries.UK_TRIDENT.lat = Math.max(-30, Math.min(40, countries.UK_TRIDENT.lat));
       countries.UK_TRIDENT.lon = Math.max(-180, Math.min(-120, countries.UK_TRIDENT.lon));
     }
     if (countries.UK_SUB_ATLANTIC) {
       countries.UK_SUB_ATLANTIC.lat += (Math.random() - 0.5) * 2;
       countries.UK_SUB_ATLANTIC.lon += (Math.random() - 0.5) * 2;
-      // Keep in Atlantic
       countries.UK_SUB_ATLANTIC.lat = Math.max(30, Math.min(60, countries.UK_SUB_ATLANTIC.lat));
       countries.UK_SUB_ATLANTIC.lon = Math.max(-60, Math.min(0, countries.UK_SUB_ATLANTIC.lon));
     }
-  }, 30000); // Move every 30 seconds
+  }, 30000);
 }
 
 // ==================== SCOREBOARD SYSTEM ====================
@@ -529,7 +571,7 @@ function saveScore() {
   
   scoreboard.push(entry);
   scoreboard.sort((a, b) => b.score - a.score);
-  scoreboard = scoreboard.slice(0, 10); // Keep top 10
+  scoreboard = scoreboard.slice(0, 10);
   
   try {
     localStorage.setItem('wargames-scoreboard', JSON.stringify(scoreboard));
@@ -550,237 +592,87 @@ function showScoreboard() {
   addTerminalLine('');
 }
 
-// ==================== SYSTEM MESSAGES CONSOLE ====================
-const systemMessages = [
-  '⚠ SECURITY BREACH DETECTED - SECTOR 7',
-  '⚠ UNAUTHORIZED ACCESS TO LAUNCH SYSTEMS',
-  '⚠ FAILSAFE OVERRIDE ATTEMPTED... UNSUCCESSFUL',
-  '⚠ GENERAL BERINGER AUTHORIZATION REQUIRED',
-  '⚠ ATTEMPTING MANUAL SHUTDOWN SEQUENCE',
-  '⚠ CRYSTAL PALACE: ALL UNITS ON ALERT',
-  '⚠ SAC BOMBER WING SCRAMBLED',
-  '⚠ DEFCON ESCALATION IN PROGRESS',
-  '⚠ INCOMING: SOVIET STRATEGIC COMMAND',
-  '⚠ UK MINISTRY OF DEFENCE: REQUESTING STATUS',
-  '⚠ FRENCH NUCLEAR COMMAND ON HIGH ALERT',
-  '⚠ LAUNCH AUTHENTICATION BYPASS DETECTED',
-  '⚠ WOPR SIMULATION MODE: UNRESPONSIVE',
-  '⚠ MISSILE SILO DOORS OPENING',
-  '⚠ TRYING TO REGAIN SYSTEM CONTROL... FAILED',
-  '⚠ LOCKDOWN PROTOCOL INITIATED',
-  '⚠ EMERGENCY BROADCAST SYSTEM ACTIVATED',
-  '⚠ NORAD COMMAND: SITUATION CRITICAL',
-  '⚠ PENTAGON: REQUESTING IMMEDIATE SHUTDOWN',
-  '⚠ CIA: TRACING UNAUTHORIZED ACCESS POINT'
-];
-
-function initSystemMessages() {
-  const sysConsole = document.getElementById('system-console');
-  if (!sysConsole) return;
-  
-  sysConsole.style.display = 'flex';
-  
-  // Make draggable using the pattern from your code
-  makeDraggable(sysConsole, sysConsole.querySelector('.console-header'), 'system-console-position');
-  
-  addSystemMessage('SYSTEM MESSAGES CONSOLE ONLINE');
-  addSystemMessage('MONITORING NORAD SECURITY STATUS...');
-  
-  systemMessagesInterval = setInterval(() => {
-    const randomMsg = systemMessages[Math.floor(Math.random() * systemMessages.length)];
-    addSystemMessage(randomMsg);
-    
-    if (Math.random() < 0.15) {
-      showTransmissionPopup();
-    }
-  }, 3000 + Math.random() * 4000);
-}
-
-function addSystemMessage(text) {
-  const output = document.getElementById('system-output');
-  if (!output) return;
-  
-  const line = document.createElement('div');
-  line.className = 'system-line';
-  const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-  line.textContent = `[${timestamp}] ${text}`;
-  output.appendChild(line);
-  output.scrollTop = output.scrollHeight;
-  
-  while (output.children.length > 50) {
-    output.removeChild(output.firstChild);
-  }
-}
-
-// Draggable function (from your provided code)
-function makeDraggable(panel, handle, storageKey) {
-  if (!panel || !handle) return;
-
-  let startX = 0, startY = 0;
-  let startLeft = 0, startTop = 0;
-  let dragging = false;
-  let hasCustomPosition = false;
-
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
-
-  const persist = (left, top) => {
-    try { 
-      localStorage.setItem(storageKey, JSON.stringify({ left, top })); 
-    } catch(_e) {}
-  };
-
-  const applyPosition = (left, top) => {
-    const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
-    const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight);
-    const L = clamp(left, 0, maxLeft);
-    const T = clamp(top, 0, maxTop);
-    panel.style.left = L + 'px';
-    panel.style.top = T + 'px';
-    panel.style.right = 'auto';
-    panel.style.bottom = 'auto';
-    return { left: L, top: T };
-  };
-
-  const loadStoredPosition = () => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) return;
-      const { left, top } = JSON.parse(raw) || {};
-      if (Number.isFinite(left) && Number.isFinite(top)) {
-        const applied = applyPosition(left, top);
-        hasCustomPosition = true;
-        persist(applied.left, applied.top);
+// ==================== COMMAND PROCESSING ====================
+function processCommand(command) {
+  if (command.startsWith('LAUNCH ')) {
+    const parts = command.split(' ');
+    if (parts.length >= 3) {
+      const source = parts[1];
+      const target = parts[2];
+      const count = parseInt(parts[3]) || 1;
+      
+      if (count > 1 && count <= 10) {
+        addTerminalLine(`LAUNCHING ${count} MISSILE SALVO`);
+        for (let i = 0; i < count; i++) {
+          setTimeout(() => {
+            launchMissile(source, target);
+          }, i * 300);
+        }
+      } else if (count === 1) {
+        launchMissile(source, target);
+      } else {
+        addTerminalLine('ERROR: SALVO SIZE MUST BE 1-10', true);
+        playError();
       }
-    } catch(_e) {}
-  };
-
-  const onMouseMove = (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    applyPosition(startLeft + dx, startTop + dy);
-    hasCustomPosition = true;
-  };
-
-  const onMouseUp = () => {
-    if (!dragging) return;
-    dragging = false;
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
-    const rect = panel.getBoundingClientRect();
-    const applied = applyPosition(rect.left, rect.top);
-    persist(applied.left, applied.top);
-    handle.setAttribute('aria-grabbed', 'false');
-  };
-
-  const onMouseDown = (e) => {
-    if (e.button !== 0) return;
-    if (e.target.classList.contains('console-close') || 
-        e.target.classList.contains('console-minimize')) return;
-    
-    dragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    const rect = panel.getBoundingClientRect();
-    startLeft = rect.left;
-    startTop = rect.top;
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-    handle.setAttribute('aria-grabbed', 'true');
-    e.preventDefault();
-  };
-
-  window.addEventListener('resize', () => {
-    if (!hasCustomPosition) return;
-    const rect = panel.getBoundingClientRect();
-    const applied = applyPosition(rect.left, rect.top);
-    persist(applied.left, applied.top);
-  });
-
-  handle.addEventListener('mousedown', onMouseDown);
-  loadStoredPosition();
-}
-
-function toggleConsole() {
-  const sysConsole = document.getElementById('system-console');
-  const content = sysConsole.querySelector('.console-content');
-  const minimizeBtn = sysConsole.querySelector('.console-minimize');
-  
-  if (content.style.display === 'none') {
-    content.style.display = 'block';
-    minimizeBtn.textContent = '_';
-  } else {
-    content.style.display = 'none';
-    minimizeBtn.textContent = '□';
-  }
-}
-
-function closeConsole() {
-  const sysConsole = document.getElementById('system-console');
-  sysConsole.style.display = 'none';
-  if (systemMessagesInterval) {
-    clearInterval(systemMessagesInterval);
-  }
-}
-
-// ==================== TRANSMISSION POPUPS ====================
-const transmissions = [
-  {
-    from: 'UK MI6',
-    message: 'DETECTING UNAUTHORIZED MISSILE LAUNCH SEQUENCES FROM YOUR SYSTEM. REQUESTING IMMEDIATE VERIFICATION.'
-  },
-  {
-    from: 'MOSCOW DEFENSE MINISTRY',
-    message: 'WE ARE DETECTING ICBM LAUNCHES. IF THIS IS NOT A DRILL, WE WILL RESPOND IN KIND.'
-  },
-  {
-    from: 'PENTAGON - JOINT CHIEFS',
-    message: 'WOPR SYSTEM HAS BEEN COMPROMISED. ATTEMPTING REMOTE SHUTDOWN. STAND BY.'
-  },
-  {
-    from: 'NORAD COMMAND',
-    message: 'GENERAL BERINGER REQUESTING AUTHENTICATION CODES. SYSTEM LOCKOUT IN PROGRESS.'
-  },
-  {
-    from: 'NATO HEADQUARTERS',
-    message: 'ALLIANCE DEFENSE SYSTEMS ON HIGH ALERT. CONFIRM STATUS IMMEDIATELY.'
-  },
-  {
-    from: 'FRENCH STRATEGIC FORCES',
-    message: 'FORCE DE FRAPPE EN ALERTE MAXIMALE. DEMANDE VERIFICATION IMMEDIATE.'
-  }
-];
-
-function showTransmissionPopup() {
-  if (document.querySelectorAll('.transmission-popup').length >= 2) return;
-  
-  const transmission = transmissions[Math.floor(Math.random() * transmissions.length)];
-  
-  const popup = document.createElement('div');
-  popup.className = 'transmission-popup';
-  popup.innerHTML = `
-    <div class="transmission-header">
-      ⚠️ INCOMING TRANSMISSION - ${transmission.from}
-    </div>
-    <div class="transmission-body">
-      ${transmission.message}
-    </div>
-    <button class="transmission-dismiss" onclick="this.parentElement.remove()">DISMISS</button>
-  `;
-  
-  const x = Math.random() * (window.innerWidth - 400);
-  const y = Math.random() * (window.innerHeight - 300) + 100;
-  popup.style.left = x + 'px';
-  popup.style.top = y + 'px';
-  
-  document.body.appendChild(popup);
-  playBeep();
-  
-  setTimeout(() => {
-    if (popup.parentElement) {
-      popup.remove();
+    } else {
+      addTerminalLine('ERROR: USAGE: LAUNCH [SOURCE] [TARGET] [COUNT]', true);
+      playError();
     }
-  }, 15000);
+  } else if (command.startsWith('SDI ')) {
+    const subCmd = command.split(' ')[1];
+    if (subCmd === 'SHIELD') {
+      activateSDIShield();
+    } else if (subCmd === 'STATUS') {
+      showSDIStatus();
+    } else {
+      addTerminalLine('ERROR: SDI COMMANDS: SHIELD, STATUS', true);
+      playError();
+    }
+  } else if (command === 'LIST') {
+    addTerminalLine('');
+    addTerminalLine('AVAILABLE COUNTRIES:');
+    Object.keys(countries).forEach(country => {
+      if (!countries[country].mobile) {
+        addTerminalLine('  - ' + country);
+      }
+    });
+    addTerminalLine('');
+    addTerminalLine('MOBILE PLATFORMS:');
+    addTerminalLine('  - UK_TRIDENT (Pacific)');
+    addTerminalLine('  - UK_SUB_ATLANTIC (Atlantic)');
+    addTerminalLine('');
+  } else if (command === 'STATUS') {
+    addTerminalLine('');
+    addTerminalLine('SYSTEM STATUS:');
+    addTerminalLine(`DEFCON LEVEL: ${defconLevel}`);
+    addTerminalLine(`MISSILES LAUNCHED: ${missileCount}`);
+    addTerminalLine(`SCORE: ${gameScore}`);
+    addTerminalLine(`SDI SHIELD: ${sdiShieldActive ? 'ACTIVE' : 'OFFLINE'}`);
+    addTerminalLine('');
+  } else if (command === 'SCOREBOARD') {
+    showScoreboard();
+  } else if (command === 'AUTO') {
+    autoLaunchEnabled = !autoLaunchEnabled;
+    addTerminalLine(`AUTO-RETALIATION ${autoLaunchEnabled ? 'ENABLED' : 'DISABLED'}`);
+    if (autoLaunchEnabled) {
+      startAutoLaunch();
+    }
+  } else if (command === 'HELP') {
+    addTerminalLine('');
+    addTerminalLine('AVAILABLE COMMANDS:');
+    addTerminalLine('  LAUNCH [SOURCE] [TARGET] [COUNT] - Fire missiles');
+    addTerminalLine('  SDI SHIELD - Activate defense shield ($5000)');
+    addTerminalLine('  SDI STATUS - Show SDI system status');
+    addTerminalLine('  LIST - Show countries and platforms');
+    addTerminalLine('  STATUS - System status');
+    addTerminalLine('  SCOREBOARD - View high scores');
+    addTerminalLine('  AUTO - Toggle auto-retaliation');
+    addTerminalLine('  HELP - Show commands');
+    addTerminalLine('');
+  } else if (command) {
+    addTerminalLine('UNKNOWN COMMAND. TYPE HELP', true);
+    playError();
+  }
 }
 
 function addTerminalLine(text, isAlert = false) {
@@ -817,89 +709,6 @@ function setupTerminal() {
   commandInput.focus();
 }
 
-function processCommand(command) {
-  if (command.startsWith('LAUNCH ')) {
-    const parts = command.split(' ');
-    if (parts.length >= 3) {
-      const source = parts[1];
-      const target = parts[2];
-      const count = parseInt(parts[3]) || 1; // Default to 1, or parse count
-      
-      if (count > 1 && count <= 10) {
-        // Multiple missile salvo
-        addTerminalLine(`LAUNCHING ${count} MISSILE SALVO`);
-        for (let i = 0; i < count; i++) {
-          setTimeout(() => {
-            launchMissile(source, target);
-          }, i * 300); // Stagger launches by 300ms
-        }
-      } else if (count === 1) {
-        launchMissile(source, target);
-      } else {
-        addTerminalLine('ERROR: SALVO SIZE MUST BE 1-10', true);
-        playError();
-      }
-    } else {
-      addTerminalLine('ERROR: USAGE: LAUNCH [SOURCE] [TARGET] [COUNT]', true);
-      playError();
-    }
-  } else if (command.startsWith('SDI ')) {
-    const subCmd = command.split(' ')[1];
-    if (subCmd === 'BUILD') {
-      activateSDI();
-    } else if (subCmd === 'STATUS') {
-      showSDIStatus();
-    } else {
-      addTerminalLine('ERROR: SDI COMMANDS: BUILD, STATUS', true);
-      playError();
-    }
-  } else if (command === 'LIST') {
-    addTerminalLine('');
-    addTerminalLine('AVAILABLE COUNTRIES:');
-    Object.keys(countries).forEach(country => {
-      if (!countries[country].mobile) {
-        addTerminalLine('  - ' + country);
-      }
-    });
-    addTerminalLine('');
-    addTerminalLine('MOBILE PLATFORMS:');
-    addTerminalLine('  - UK_TRIDENT (Pacific)');
-    addTerminalLine('  - UK_SUB_ATLANTIC (Atlantic)');
-    addTerminalLine('');
-  } else if (command === 'STATUS') {
-    addTerminalLine('');
-    addTerminalLine('SYSTEM STATUS:');
-    addTerminalLine(`DEFCON LEVEL: ${defconLevel}`);
-    addTerminalLine(`MISSILES LAUNCHED: ${missileCount}`);
-    addTerminalLine(`SCORE: ${gameScore}`);
-    addTerminalLine(`SDI SYSTEM: ${sdiActive ? 'ACTIVE' : 'OFFLINE'}`);
-    addTerminalLine('');
-  } else if (command === 'SCOREBOARD') {
-    showScoreboard();
-  } else if (command === 'AUTO') {
-    autoLaunchEnabled = !autoLaunchEnabled;
-    addTerminalLine(`AUTO-RETALIATION ${autoLaunchEnabled ? 'ENABLED' : 'DISABLED'}`);
-    if (autoLaunchEnabled) {
-      startAutoLaunch();
-    }
-  } else if (command === 'HELP') {
-    addTerminalLine('');
-    addTerminalLine('AVAILABLE COMMANDS:');
-    addTerminalLine('  LAUNCH [SOURCE] [TARGET] [COUNT] - Fire missiles');
-    addTerminalLine('  SDI BUILD - Activate orbital defense ($5000)');
-    addTerminalLine('  SDI STATUS - Show SDI system status');
-    addTerminalLine('  LIST - Show countries and platforms');
-    addTerminalLine('  STATUS - System status');
-    addTerminalLine('  SCOREBOARD - View high scores');
-    addTerminalLine('  AUTO - Toggle auto-retaliation');
-    addTerminalLine('  HELP - Show commands');
-    addTerminalLine('');
-  } else if (command) {
-    addTerminalLine('UNKNOWN COMMAND. TYPE HELP', true);
-    playError();
-  }
-}
-
 function launchMissile(source, target) {
   if (!countries[source] || !countries[target]) {
     addTerminalLine('ERROR: INVALID COUNTRY CODE', true);
@@ -921,12 +730,20 @@ function launchMissile(source, target) {
   const sourceLoc = countries[source];
   const targetLoc = countries[target];
   
-  missiles.push({
+  const missile = {
     source: { lat: sourceLoc.lat, lon: sourceLoc.lon },
     target: { lat: targetLoc.lat, lon: targetLoc.lon },
     progress: 0,
-    active: true
-  });
+    active: true,
+    intercepted: false
+  };
+  
+  // Attempt SDI intercept
+  if (attemptIntercept(missile)) {
+    missile.intercepted = true;
+  }
+  
+  missiles.push(missile);
 
   const mapCanvas = document.getElementById('mapCanvas');
   const sourceX = ((sourceLoc.lon + 180) / 360) * mapCanvas.width;
@@ -939,7 +756,8 @@ function launchMissile(source, target) {
     target: { x: targetX, y: targetY },
     progress: 0,
     active: true,
-    explosion: null
+    explosion: null,
+    intercepted: missile.intercepted
   });
 
   updateDefcon();
@@ -978,7 +796,7 @@ function updateNoradStatus() {
 function startAutoLaunch() {
   if (!autoLaunchEnabled) return;
   
-  const countryList = Object.keys(countries);
+  const countryList = Object.keys(countries).filter(c => !countries[c].mobile);
   const source = countryList[Math.floor(Math.random() * countryList.length)];
   const target = countryList[Math.floor(Math.random() * countryList.length)];
   
@@ -1003,7 +821,6 @@ function endGame() {
     document.getElementById('end-score').textContent = gameScore;
     showScreen('end-screen');
     
-    // Display scoreboard on end screen
     setTimeout(() => {
       const endScreen = document.getElementById('end-screen');
       if (scoreboard.length > 0) {
@@ -1032,7 +849,7 @@ function initGlobe() {
   renderer.setClearColor(0x000000);
 
   const radius = 2;
-  const segments = 12; // Cleaner retro look with fewer grid lines
+  const segments = 12;
   const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
   const wireframeMaterial = new THREE.MeshBasicMaterial({
     color: 0x00ff00,
@@ -1105,47 +922,58 @@ function animateGlobe() {
   globe.rotation.y += 0.003;
   globe.rotation.x += 0.001;
 
-  // Clear old objects except globe and country markers
   scene.children = scene.children.filter(child => 
     child === globe || 
-    (child.geometry instanceof THREE.SphereGeometry && child.geometry.parameters.radius < 0.1)
+    (child.geometry instanceof THREE.SphereGeometry && child.geometry.parameters.radius < 0.1) ||
+    sdiMeshes.includes(child)
   );
 
-  // Draw active missiles
   missiles.forEach(missile => {
-    if (missile.active) {
+    if (missile.active && !missile.intercepted) {
       missile.progress += 0.005;
       if (missile.progress >= 1) {
         missile.active = false;
       } else {
         const arc = createGlobeMissileArc(missile.source, missile.target, missile.progress);
         if (arc) scene.add(arc);
+        
+        // Draw intercept laser if missile is intercepted mid-flight
+        if (sdiShieldActive && missile.progress > 0.3 && missile.progress < 0.7 && 
+            Math.abs(missile.target.lat - countries.USA.lat) < 10) {
+          if (Math.random() < 0.02) { // Occasional laser flash
+            const nearestSat = sdiMeshes[0];
+            if (nearestSat) {
+              const missilePos = arc.geometry.attributes.position;
+              const lastPoint = new THREE.Vector3(
+                missilePos.getX(missilePos.count - 1),
+                missilePos.getY(missilePos.count - 1),
+                missilePos.getZ(missilePos.count - 1)
+              );
+              const laserPoints = [nearestSat.position, lastPoint];
+              const laserGeom = new THREE.BufferGeometry().setFromPoints(laserPoints);
+              const laserMat = new THREE.LineBasicMaterial({ color: 0x00ffff });
+              const laser = new THREE.Line(laserGeom, laserMat);
+              scene.add(laser);
+            }
+          }
+        }
       }
     }
   });
 
-  // Draw SDI satellites (cyan dots in orbit)
-  if (sdiActive && sdiSatellites.length > 0) {
-    sdiSatellites.forEach(sat => {
-      if (!sat.active) return;
+  if (sdiSatellites.length > 0) {
+    sdiSatellites.forEach((sat, idx) => {
+      if (!sat.active || !sdiMeshes[idx]) return;
       
       sat.angle += sat.speed;
-      const orbitRadius = 2.8; // Higher orbit than globe surface
-      const tilt = Math.PI / 6; // Orbital inclination
+      const orbitRadius = 2.8;
+      const tilt = Math.PI / 6;
       
       const x = orbitRadius * Math.cos(sat.angle) * Math.cos(tilt);
       const y = orbitRadius * Math.sin(sat.angle);
       const z = orbitRadius * Math.cos(sat.angle) * Math.sin(tilt);
       
-      const satGeometry = new THREE.SphereGeometry(0.04, 8, 8);
-      const satMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x00ffff, // Cyan for satellites
-        emissive: 0x00ffff,
-        emissiveIntensity: 0.5
-      });
-      const satMesh = new THREE.Mesh(satGeometry, satMaterial);
-      satMesh.position.set(x, y, z);
-      scene.add(satMesh);
+      sdiMeshes[idx].position.set(x, y, z);
     });
   }
 
@@ -1225,16 +1053,17 @@ function drawCountryMarkers() {
   });
 }
 
-function drawMissileTrajectory(source, target, progress) {
+function drawMissileTrajectory(source, target, progress, intercepted) {
   const dx = target.x - source.x;
   const dy = target.y - source.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
   const arcHeight = distance * 0.3;
 
-  mapCtx.strokeStyle = '#ff0000';
+  const color = intercepted ? '#00ffff' : '#ff0000';
+  mapCtx.strokeStyle = color;
   mapCtx.lineWidth = 2;
   mapCtx.shadowBlur = 10;
-  mapCtx.shadowColor = '#ff0000';
+  mapCtx.shadowColor = color;
   mapCtx.setLineDash([5, 5]);
   mapCtx.beginPath();
   mapCtx.moveTo(source.x, source.y);
@@ -1250,9 +1079,10 @@ function drawMissileTrajectory(source, target, progress) {
   if (progress < 1) {
     const currentX = source.x + dx * progress;
     const currentY = source.y + dy * progress - Math.sin(progress * Math.PI) * arcHeight;
-    mapCtx.fillStyle = '#ffff00';
+    
+    mapCtx.fillStyle = intercepted ? '#00ffff' : '#ffff00';
     mapCtx.shadowBlur = 15;
-    mapCtx.shadowColor = '#ffff00';
+    mapCtx.shadowColor = intercepted ? '#00ffff' : '#ffff00';
     mapCtx.beginPath();
     mapCtx.arc(currentX, currentY, 3, 0, Math.PI * 2);
     mapCtx.fill();
@@ -1292,14 +1122,16 @@ function animateMap() {
   mapMissiles.forEach(missile => {
     if (missile.active) {
       missile.progress += 0.008;
-      if (missile.progress >= 1) {
+      if (missile.progress >= 1 || missile.intercepted) {
         missile.active = false;
-        missile.explosion = { frame: 0 };
-        playExplosion();
-        addScore(100);
-        updateNoradStatus();
+        if (!missile.intercepted) {
+          missile.explosion = { frame: 0 };
+          playExplosion();
+          addScore(100);
+          updateNoradStatus();
+        }
       } else {
-        drawMissileTrajectory(missile.source, missile.target, missile.progress);
+        drawMissileTrajectory(missile.source, missile.target, missile.progress, missile.intercepted);
       }
     } else if (missile.explosion && missile.explosion.frame < 30) {
       drawExplosion(missile.target.x, missile.target.y, missile.explosion.frame);
@@ -1308,18 +1140,132 @@ function animateMap() {
   });
 }
 
-// ==================== EVENT LISTENERS ====================
 window.addEventListener('resize', () => {
   if (renderer) resizeGlobe();
   if (mapCanvas) resizeMap();
 });
 
-// ==================== EXPOSE FUNCTIONS GLOBALLY ====================
+// ==================== SYSTEM MESSAGES ====================
+const systemMessages = [
+  'TRACKING SATELLITE PASS OVER SECTOR 7',
+  'RADAR CONTACT: UNKNOWN AIRCRAFT',
+  'COMMUNICATIONS LINK ESTABLISHED',
+  'EARLY WARNING SYSTEM: NOMINAL',
+  'STRATEGIC AIR COMMAND: READY',
+  'MISSILE SILO STATUS: ARMED',
+  'SUBMARINE PATROL: ACTIVE',
+  'CRYPTOGRAPHIC KEY ROTATION COMPLETE',
+  'WEATHER SATELLITE DATA RECEIVED',
+  'SECURE CHANNEL ENCRYPTED'
+];
+
+function initSystemMessages() {
+  systemMessagesInterval = setInterval(() => {
+    if (Math.random() < 0.4) {
+      const msg = systemMessages[Math.floor(Math.random() * systemMessages.length)];
+      addTerminalLine(`[SYSTEM] ${msg}`);
+    }
+  }, 5000);
+}
+
+// ==================== DRAGGABLE TERMINAL ====================
+function makeDraggable() {
+  const terminal = document.getElementById('terminal-container');
+  const handle = document.getElementById('terminal-drag-handle');
+  
+  if (!handle || !terminal) return;
+  
+  handle.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    dragOffset.x = e.clientX - terminal.offsetLeft;
+    dragOffset.y = e.clientY - terminal.offsetTop;
+    terminal.style.cursor = 'grabbing';
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    
+    const newX = e.clientX - dragOffset.x;
+    const newY = e.clientY - dragOffset.y;
+    
+    const maxX = window.innerWidth - terminal.offsetWidth;
+    const maxY = window.innerHeight - terminal.offsetHeight;
+    
+    terminal.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+    terminal.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      terminal.style.cursor = 'default';
+    }
+  });
+}
+
+// ==================== RESTART GAME ====================
+function restartGame() {
+  // Clear all intervals and timeouts
+  if (timerInterval) clearInterval(timerInterval);
+  if (launchTimer) clearTimeout(launchTimer);
+  if (systemMessagesInterval) clearInterval(systemMessagesInterval);
+  if (intelligenceInterval) clearInterval(intelligenceInterval);
+  
+  // Reset game state
+  gameScore = 0;
+  currentLevel = 0;
+  gameStartTime = 0;
+  codesSolved = 0;
+  defconLevel = 5;
+  missileCount = 0;
+  missiles = [];
+  mapMissiles = [];
+  autoLaunchEnabled = false;
+  sdiShieldActive = false;
+  sdiSatellites = [];
+  
+  // Clean up Three.js
+  if (scene) {
+    scene.children.forEach(child => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+    });
+    scene.children = [];
+  }
+  if (renderer) {
+    renderer.dispose();
+    renderer = null;
+  }
+  
+  // Clean up SDI meshes
+  sdiMeshes.forEach(mesh => {
+    if (mesh.geometry) mesh.geometry.dispose();
+    if (mesh.material) mesh.material.dispose();
+  });
+  sdiMeshes = [];
+  
+  scene = null;
+  camera = null;
+  globe = null;
+  
+  // Reset UI
+  updateAllScores();
+  
+  // Return to start screen
+  showScreen('start-screen');
+  playBeep();
+}
+
+// ==================== EXPOSE FUNCTIONS TO WINDOW ====================
 window.startGame = startGame;
 window.checkPassword = checkPassword;
 window.selectGame = selectGame;
 window.checkPuzzle = checkPuzzle;
-window.toggleConsole = toggleConsole;
-window.closeConsole = closeConsole;
+window.restartGame = restartGame;
 
-console.log('WarGames game.js loaded successfully');
+// ==================== INITIALIZE ON LOAD ====================
+document.addEventListener('DOMContentLoaded', () => {
+  playBeep();
+  makeDraggable();
+  loadScoreboard();
+});
