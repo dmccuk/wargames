@@ -16,6 +16,10 @@ let mapCanvas, mapCtx;
 let systemMessagesInterval = null;
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
+let sdiActive = false;
+let sdiSatellites = [];
+let intelligenceInterval = null;
+let scoreboard = [];
 
 const countries = {
   USA: { lat: 39.8283, lon: -98.5795 },
@@ -27,7 +31,9 @@ const countries = {
   INDIA: { lat: 20.5937, lon: 78.9629 },
   JAPAN: { lat: 36.2048, lon: 138.2529 },
   CANADA: { lat: 56.1304, lon: -106.3468 },
-  AUSTRALIA: { lat: -25.2744, lon: 133.7751 }
+  AUSTRALIA: { lat: -25.2744, lon: 133.7751 },
+  UK_TRIDENT: { lat: 20.0, lon: -160.0, mobile: true }, // Pacific patrol
+  UK_SUB_ATLANTIC: { lat: 40.0, lon: -30.0, mobile: true } // Atlantic patrol
 };
 
 const puzzles = [
@@ -391,21 +397,157 @@ function startLevel5() {
   addTerminalLine('MISSILE LAUNCH CONTROL ACTIVATED');
   addTerminalLine('');
   addTerminalLine('COMMANDS AVAILABLE:');
-  addTerminalLine('  LAUNCH [SOURCE] [TARGET] - Fire missile');
+  addTerminalLine('  LAUNCH [SOURCE] [TARGET] [COUNT] - Fire missiles');
+  addTerminalLine('  SDI BUILD - Activate Star Wars defense');
   addTerminalLine('  LIST - Show countries');
   addTerminalLine('  STATUS - System status');
   addTerminalLine('  AUTO - Enable auto-retaliation');
+  addTerminalLine('  SCOREBOARD - View high scores');
   addTerminalLine('');
 
   loadGeoData();
+  loadScoreboard();
   initGlobe();
   initMap();
   setupTerminal();
   initSystemMessages();
+  startIntelligenceReports();
+  startSubmarinePatrol();
 
   launchTimer = setTimeout(() => {
     endGame();
   }, 180000);
+}
+
+// ==================== SDI SYSTEM ====================
+function activateSDI() {
+  if (sdiActive) {
+    addTerminalLine('SDI SYSTEM ALREADY ACTIVE');
+    return;
+  }
+  
+  if (gameScore < 5000) {
+    addTerminalLine('INSUFFICIENT FUNDS - NEED 5000 POINTS', true);
+    playError();
+    return;
+  }
+  
+  gameScore -= 5000;
+  sdiActive = true;
+  addTerminalLine('');
+  addTerminalLine('DEPLOYING SDI ORBITAL DEFENSE PLATFORM...');
+  addTerminalLine('SATELLITE CONSTELLATION ACTIVATING...');
+  playSuccess();
+  
+  // Create 8 satellites in orbit
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    sdiSatellites.push({
+      angle: angle,
+      speed: 0.01,
+      active: true
+    });
+  }
+  
+  setTimeout(() => {
+    addTerminalLine('SDI SYSTEM ONLINE - 8 SATELLITES DEPLOYED');
+    addTerminalLine('');
+    updateNoradStatus();
+  }, 1500);
+}
+
+function showSDIStatus() {
+  addTerminalLine('');
+  addTerminalLine('SDI SYSTEM STATUS:');
+  addTerminalLine(`STATUS: ${sdiActive ? 'ACTIVE' : 'OFFLINE'}`);
+  if (sdiActive) {
+    addTerminalLine(`SATELLITES: ${sdiSatellites.filter(s => s.active).length}/8`);
+    addTerminalLine('INTERCEPT CAPABILITY: OPERATIONAL');
+  }
+  addTerminalLine('');
+}
+
+// ==================== INTELLIGENCE REPORTS ====================
+const intelligenceReports = [
+  'CIA REPORT: UNUSUAL ACTIVITY AT RUSSIAN SILOS',
+  'NSA INTERCEPT: ENCRYPTED TRANSMISSION FROM BEIJING',
+  'SATELLITE: THERMAL SIGNATURE DETECTED',
+  'MI6 ALERT: SUBMARINE MOVEMENT IN NORTH ATLANTIC',
+  'NORAD: EARLY WARNING RADAR CONTACT',
+  'PENTAGON: STRATEGIC FORCES ON ALERT',
+  'CIA: INTERCEPTED ENEMY COMMUNICATIONS',
+  'SATELLITE RECON: MISSILE DOOR ACTIVITY'
+];
+
+function startIntelligenceReports() {
+  intelligenceInterval = setInterval(() => {
+    if (Math.random() < 0.3) { // 30% chance
+      const report = intelligenceReports[Math.floor(Math.random() * intelligenceReports.length)];
+      addTerminalLine(`[INTEL] ${report}`);
+    }
+  }, 8000);
+}
+
+// ==================== SUBMARINE PATROL ====================
+function startSubmarinePatrol() {
+  setInterval(() => {
+    // Move UK submarines
+    if (countries.UK_TRIDENT) {
+      countries.UK_TRIDENT.lat += (Math.random() - 0.5) * 2;
+      countries.UK_TRIDENT.lon += (Math.random() - 0.5) * 2;
+      // Keep in Pacific
+      countries.UK_TRIDENT.lat = Math.max(-30, Math.min(40, countries.UK_TRIDENT.lat));
+      countries.UK_TRIDENT.lon = Math.max(-180, Math.min(-120, countries.UK_TRIDENT.lon));
+    }
+    if (countries.UK_SUB_ATLANTIC) {
+      countries.UK_SUB_ATLANTIC.lat += (Math.random() - 0.5) * 2;
+      countries.UK_SUB_ATLANTIC.lon += (Math.random() - 0.5) * 2;
+      // Keep in Atlantic
+      countries.UK_SUB_ATLANTIC.lat = Math.max(30, Math.min(60, countries.UK_SUB_ATLANTIC.lat));
+      countries.UK_SUB_ATLANTIC.lon = Math.max(-60, Math.min(0, countries.UK_SUB_ATLANTIC.lon));
+    }
+  }, 30000); // Move every 30 seconds
+}
+
+// ==================== SCOREBOARD SYSTEM ====================
+function loadScoreboard() {
+  try {
+    const saved = localStorage.getItem('wargames-scoreboard');
+    if (saved) {
+      scoreboard = JSON.parse(saved);
+    }
+  } catch(e) {}
+}
+
+function saveScore() {
+  const entry = {
+    score: gameScore,
+    missiles: missileCount,
+    defcon: defconLevel,
+    date: new Date().toISOString()
+  };
+  
+  scoreboard.push(entry);
+  scoreboard.sort((a, b) => b.score - a.score);
+  scoreboard = scoreboard.slice(0, 10); // Keep top 10
+  
+  try {
+    localStorage.setItem('wargames-scoreboard', JSON.stringify(scoreboard));
+  } catch(e) {}
+}
+
+function showScoreboard() {
+  addTerminalLine('');
+  addTerminalLine('=== TOP 10 SCORES ===');
+  if (scoreboard.length === 0) {
+    addTerminalLine('NO SCORES YET');
+  } else {
+    scoreboard.forEach((entry, idx) => {
+      const date = new Date(entry.date).toLocaleDateString();
+      addTerminalLine(`${idx + 1}. ${entry.score} PTS - ${entry.missiles} LAUNCHES - DEFCON ${entry.defcon} - ${date}`);
+    });
+  }
+  addTerminalLine('');
 }
 
 // ==================== SYSTEM MESSAGES CONSOLE ====================
@@ -678,18 +820,51 @@ function setupTerminal() {
 function processCommand(command) {
   if (command.startsWith('LAUNCH ')) {
     const parts = command.split(' ');
-    if (parts.length === 3) {
-      launchMissile(parts[1], parts[2]);
+    if (parts.length >= 3) {
+      const source = parts[1];
+      const target = parts[2];
+      const count = parseInt(parts[3]) || 1; // Default to 1, or parse count
+      
+      if (count > 1 && count <= 10) {
+        // Multiple missile salvo
+        addTerminalLine(`LAUNCHING ${count} MISSILE SALVO`);
+        for (let i = 0; i < count; i++) {
+          setTimeout(() => {
+            launchMissile(source, target);
+          }, i * 300); // Stagger launches by 300ms
+        }
+      } else if (count === 1) {
+        launchMissile(source, target);
+      } else {
+        addTerminalLine('ERROR: SALVO SIZE MUST BE 1-10', true);
+        playError();
+      }
     } else {
-      addTerminalLine('ERROR: USAGE: LAUNCH [SOURCE] [TARGET]', true);
+      addTerminalLine('ERROR: USAGE: LAUNCH [SOURCE] [TARGET] [COUNT]', true);
+      playError();
+    }
+  } else if (command.startsWith('SDI ')) {
+    const subCmd = command.split(' ')[1];
+    if (subCmd === 'BUILD') {
+      activateSDI();
+    } else if (subCmd === 'STATUS') {
+      showSDIStatus();
+    } else {
+      addTerminalLine('ERROR: SDI COMMANDS: BUILD, STATUS', true);
       playError();
     }
   } else if (command === 'LIST') {
     addTerminalLine('');
     addTerminalLine('AVAILABLE COUNTRIES:');
     Object.keys(countries).forEach(country => {
-      addTerminalLine('  - ' + country);
+      if (!countries[country].mobile) {
+        addTerminalLine('  - ' + country);
+      }
     });
+    addTerminalLine('');
+    addTerminalLine('MOBILE PLATFORMS:');
+    addTerminalLine('  - UK_TRIDENT (Pacific)');
+    addTerminalLine('  - UK_SUB_ATLANTIC (Atlantic)');
     addTerminalLine('');
   } else if (command === 'STATUS') {
     addTerminalLine('');
@@ -697,7 +872,10 @@ function processCommand(command) {
     addTerminalLine(`DEFCON LEVEL: ${defconLevel}`);
     addTerminalLine(`MISSILES LAUNCHED: ${missileCount}`);
     addTerminalLine(`SCORE: ${gameScore}`);
+    addTerminalLine(`SDI SYSTEM: ${sdiActive ? 'ACTIVE' : 'OFFLINE'}`);
     addTerminalLine('');
+  } else if (command === 'SCOREBOARD') {
+    showScoreboard();
   } else if (command === 'AUTO') {
     autoLaunchEnabled = !autoLaunchEnabled;
     addTerminalLine(`AUTO-RETALIATION ${autoLaunchEnabled ? 'ENABLED' : 'DISABLED'}`);
@@ -707,9 +885,12 @@ function processCommand(command) {
   } else if (command === 'HELP') {
     addTerminalLine('');
     addTerminalLine('AVAILABLE COMMANDS:');
-    addTerminalLine('  LAUNCH [SOURCE] [TARGET] - Fire missile');
-    addTerminalLine('  LIST - Show countries');
+    addTerminalLine('  LAUNCH [SOURCE] [TARGET] [COUNT] - Fire missiles');
+    addTerminalLine('  SDI BUILD - Activate orbital defense ($5000)');
+    addTerminalLine('  SDI STATUS - Show SDI system status');
+    addTerminalLine('  LIST - Show countries and platforms');
     addTerminalLine('  STATUS - System status');
+    addTerminalLine('  SCOREBOARD - View high scores');
     addTerminalLine('  AUTO - Toggle auto-retaliation');
     addTerminalLine('  HELP - Show commands');
     addTerminalLine('');
@@ -812,12 +993,33 @@ function startAutoLaunch() {
 
 function endGame() {
   if (launchTimer) clearTimeout(launchTimer);
+  if (intelligenceInterval) clearInterval(intelligenceInterval);
   autoLaunchEnabled = false;
   playDefconAlarm();
+  
+  saveScore();
   
   setTimeout(() => {
     document.getElementById('end-score').textContent = gameScore;
     showScreen('end-screen');
+    
+    // Display scoreboard on end screen
+    setTimeout(() => {
+      const endScreen = document.getElementById('end-screen');
+      if (scoreboard.length > 0) {
+        const scoreboardDiv = document.createElement('div');
+        scoreboardDiv.style.marginTop = '40px';
+        scoreboardDiv.innerHTML = '<div class="terminal-text" style="font-size: 20px; margin-bottom: 20px;">TOP SCORES:</div>';
+        scoreboard.slice(0, 5).forEach((entry, idx) => {
+          const div = document.createElement('div');
+          div.className = 'terminal-text';
+          div.style.fontSize = '16px';
+          div.textContent = `${idx + 1}. ${entry.score} POINTS - ${entry.missiles} LAUNCHES`;
+          scoreboardDiv.appendChild(div);
+        });
+        endScreen.appendChild(scoreboardDiv);
+      }
+    }, 500);
   }, 2000);
 }
 
@@ -903,10 +1105,13 @@ function animateGlobe() {
   globe.rotation.y += 0.003;
   globe.rotation.x += 0.001;
 
+  // Clear old objects except globe and country markers
   scene.children = scene.children.filter(child => 
-    child === globe || child.geometry instanceof THREE.SphereGeometry
+    child === globe || 
+    (child.geometry instanceof THREE.SphereGeometry && child.geometry.parameters.radius < 0.1)
   );
 
+  // Draw active missiles
   missiles.forEach(missile => {
     if (missile.active) {
       missile.progress += 0.005;
@@ -918,6 +1123,31 @@ function animateGlobe() {
       }
     }
   });
+
+  // Draw SDI satellites (cyan dots in orbit)
+  if (sdiActive && sdiSatellites.length > 0) {
+    sdiSatellites.forEach(sat => {
+      if (!sat.active) return;
+      
+      sat.angle += sat.speed;
+      const orbitRadius = 2.8; // Higher orbit than globe surface
+      const tilt = Math.PI / 6; // Orbital inclination
+      
+      const x = orbitRadius * Math.cos(sat.angle) * Math.cos(tilt);
+      const y = orbitRadius * Math.sin(sat.angle);
+      const z = orbitRadius * Math.cos(sat.angle) * Math.sin(tilt);
+      
+      const satGeometry = new THREE.SphereGeometry(0.04, 8, 8);
+      const satMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x00ffff, // Cyan for satellites
+        emissive: 0x00ffff,
+        emissiveIntensity: 0.5
+      });
+      const satMesh = new THREE.Mesh(satGeometry, satMaterial);
+      satMesh.position.set(x, y, z);
+      scene.add(satMesh);
+    });
+  }
 
   renderer.render(scene, camera);
 }
