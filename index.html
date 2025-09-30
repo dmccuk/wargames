@@ -1,383 +1,755 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WOPR // Channel Operations</title>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root{ --phosphor:#33ff33; --grid:#2fa62f; --bg:#0a0a0a; }
-    body { background: var(--bg); font-family: 'VT323', monospace; color: var(--phosphor); overflow: hidden; font-size: 14px; text-shadow: 0 0 3px var(--phosphor); }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NORAD COMMAND - WOPR SYSTEM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* SPLASH */
-    #splash { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; transition: opacity 1s; }
-    #splash.fade-out { opacity: 0; pointer-events: none; }
-    #splash-canvas { width: 60vw; height: 60vh; max-width: 800px; max-height: 600px; }
-    #splash-log { margin-top: 30px; font-size: 16px; text-shadow: 0 0 8px var(--phosphor); min-height: 120px; text-align: center; }
-    #splash-log > div { margin: 8px 0; opacity: 0; animation: fadeIn 0.3s forwards; }
-    @keyframes fadeIn { to { opacity: 1; } }
+        body {
+            background: #000a00;
+            font-family: 'Courier New', monospace;
+            color: #33ff33;
+            overflow: hidden;
+            letter-spacing: 1px;
+        }
 
-    #header, #footer { position: absolute; left: 0; right: 0; padding: 10px 20px; display: flex; justify-content: space-between; align-items:center; text-shadow: 0 0 8px var(--phosphor); z-index: 100; background: rgba(10, 10, 10, 0.9); border: 2px solid var(--phosphor); }
-    #header{ top:0; border-bottom-width:2px; border-top:none; }
-    #footer{ bottom:0; border-top-width:2px; border-bottom:none; }
-    #main-container { position: absolute; top: 50px; bottom: 50px; left: 0; right: 0; }
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+            animation: scan 8s linear infinite;
+        }
 
-    /* DRAGGABLE TERMINAL */
-    #terminal-section { position: fixed; left: 10px; bottom: 10px; width: 400px; height: 300px; border: 1px solid var(--phosphor); display: flex; flex-direction: column; background: rgba(5,15,5,0.95); box-shadow: 0 0 20px rgba(51,255,51,0.2); z-index: 200; }
-    #term-handle { background: rgba(0, 30, 0, 0.9); border-bottom: 1px solid var(--phosphor); padding: 6px 10px; cursor: move; user-select: none; font-size: 13px; display: flex; justify-content: space-between; }
-    #term-handle:active { cursor: grabbing; }
-    #terminal-output { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; }
-    #input-line { padding: 6px 10px; border-top: 1px solid var(--phosphor); display:flex; align-items:center; gap:6px; background: rgba(0, 20, 0, 0.5); }
-    #command-input { flex:1; background: transparent; border: none; color: var(--phosphor); font-family: 'VT323', monospace; font-size: 14px; outline: none; }
-    
-    #right { position:absolute; inset:0; padding: 10px; display:grid; grid-template-rows: 2fr 1fr; gap: 10px; }
-    .monitor-box { border: 1px solid var(--phosphor); background: #000; position: relative; overflow:hidden; }
-    .monitor-title { position: absolute; top: 5px; left: 10px; font-size: 13px; z-index: 10; }
-    canvas { display:block; width:100%; height:100%; }
-    .cursor { display:inline-block; width:8px; height:14px; background: var(--phosphor); animation: blink 1s infinite; }
-    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-  </style>
+        @keyframes scan {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(10px); }
+        }
+
+        .header {
+            background: #001a00;
+            border-bottom: 2px solid #33ff33;
+            padding: 10px 20px;
+            text-align: center;
+            text-shadow: 0 0 10px #33ff33, 0 0 20px #33ff33;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 100px);
+        }
+
+        .terminal-section {
+            flex: 1;
+            padding: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #33ff33;
+            background: rgba(0, 10, 0, 0.5);
+        }
+
+        .status-display {
+            border: 2px solid #33ff33;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: rgba(0, 26, 0, 0.8);
+            box-shadow: inset 0 0 20px rgba(51, 255, 51, 0.2);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            text-shadow: 0 0 5px #33ff33, 0 0 10px #33ff33;
+        }
+
+        .defcon-1 { color: #ff0000; text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; }
+        .defcon-2 { color: #ff6600; text-shadow: 0 0 10px #ff6600; }
+        .defcon-3 { color: #ffff00; text-shadow: 0 0 10px #ffff00; }
+
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 14px;
+            line-height: 1.4;
+            border: 1px solid #33ff33;
+            background: rgba(0, 10, 0, 0.9);
+            box-shadow: inset 0 0 20px rgba(51, 255, 51, 0.1);
+        }
+
+        .terminal-output::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .terminal-output::-webkit-scrollbar-track {
+            background: #001a00;
+        }
+
+        .terminal-output::-webkit-scrollbar-thumb {
+            background: #33ff33;
+            box-shadow: 0 0 10px #33ff33;
+        }
+
+        .terminal-line {
+            text-shadow: 0 0 5px #33ff33, 0 0 10px #33ff33;
+            margin: 3px 0;
+        }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 26, 0, 0.8);
+            border: 1px solid #33ff33;
+        }
+
+        .prompt {
+            margin-right: 10px;
+            text-shadow: 0 0 5px #33ff33, 0 0 10px #33ff33;
+        }
+
+        #commandInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #33ff33;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+            text-shadow: 0 0 5px #33ff33;
+            letter-spacing: 1px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 16px;
+            background: #33ff33;
+            animation: blink 1s infinite;
+            box-shadow: 0 0 10px #33ff33;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .display-section {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .globe-container {
+            flex: 1;
+            position: relative;
+            border: 2px solid #33ff33;
+            background: #000000;
+            box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.2);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            border: 2px solid #33ff33;
+            background: rgba(0, 10, 0, 0.9);
+            box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.2);
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .footer {
+            background: #001a00;
+            border-top: 2px solid #33ff33;
+            padding: 10px 20px;
+            text-align: center;
+            text-shadow: 0 0 10px #33ff33;
+            font-size: 12px;
+        }
+
+        .alert {
+            color: #ff0000;
+            text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00;
+        }
+    </style>
 </head>
 <body>
-  <div id="splash">
-    <canvas id="splash-canvas"></canvas>
-    <div id="splash-log"></div>
-  </div>
+    <div class="scanlines"></div>
+    
+    <div class="header">
+        ═══ NORAD COMMAND CENTER - WAR OPERATION PLAN RESPONSE ═══
+    </div>
 
-  <div id="header">
-    <div>W.O.P.R // CHANNEL OPERATIONS</div>
-    <div>CONNECTION: <span id="status">INITIALIZING</span></div>
-  </div>
+    <div class="main-container">
+        <div class="terminal-section">
+            <div class="status-display">
+                <div class="status-row">
+                    <span>SYSTEM STATUS:</span>
+                    <span id="systemStatus">LOADING</span>
+                </div>
+                <div class="status-row">
+                    <span>DEFCON LEVEL:</span>
+                    <span id="defconLevel" class="defcon-3">3</span>
+                </div>
+                <div class="status-row">
+                    <span>MISSILES LAUNCHED:</span>
+                    <span id="missileCount">0</span>
+                </div>
+                <div class="status-row">
+                    <span>GAME STATUS:</span>
+                    <span id="gameStatus">AWAITING INPUT</span>
+                </div>
+            </div>
 
-  <div id="main-container">
-    <section id="terminal-section">
-      <div id="term-handle">
-        <span>WOPR CONSOLE</span>
-        <span style="font-size:11px; opacity:0.7;">DRAG TO MOVE</span>
-      </div>
-      <div id="terminal-output"></div>
-      <div id="input-line">
-        <span>&gt;</span>
-        <input type="text" id="command-input" placeholder="Type HELP" />
-        <span class="cursor"></span>
-      </div>
-    </section>
+            <div class="terminal-output" id="terminalOutput">
+                <div class="terminal-line">WOPR SYSTEM v2.1.4</div>
+                <div class="terminal-line">CONNECTING TO NORAD MAINFRAME...</div>
+                <div class="terminal-line loading">LOADING GEOGRAPHIC DATA...</div>
+            </div>
 
-    <section id="right">
-      <div class="monitor-box">
-        <div class="monitor-title">GLOBAL THEATER</div>
-        <canvas id="world-canvas"></canvas>
-      </div>
-      <div class="monitor-box">
-        <div class="monitor-title">ANALYTICS OVERVIEW</div>
-        <canvas id="chart-canvas"></canvas>
-      </div>
-    </section>
-  </div>
+            <div class="input-line">
+                <span class="prompt">WOPR></span>
+                <input type="text" id="commandInput" autofocus>
+                <span class="cursor"></span>
+            </div>
+        </div>
 
-  <div id="footer">
-    <div>NORAD // CHEYENNE MTN</div>
-    <div>DEFCON: <span id="defcon">5</span></div>
-  </div>
+        <div class="display-section">
+            <div class="globe-container">
+                <canvas id="globeCanvas"></canvas>
+            </div>
+            <div class="map-container">
+                <canvas id="mapCanvas"></canvas>
+            </div>
+        </div>
+    </div>
 
-  <script>
-  // SPLASH BOOT
-  const splash = document.getElementById('splash');
-  const splashCanvas = document.getElementById('splash-canvas');
-  const splashLog = document.getElementById('splash-log');
-  const splashCtx = splashCanvas.getContext('2d');
+    <div class="footer">
+        CLASSIFIED - TOP SECRET - AUTHORIZED PERSONNEL ONLY
+    </div>
 
-  const bootMessages = [
-    'BOOT SEQUENCE INITIATED...',
-    'LOADING W.O.P.R CORE SYSTEMS...',
-    'ESTABLISHING SECURE LINK...',
-    'CONNECTING TO NORAD: CHEYENNE MTN...',
-    'INITIALIZING GLOBAL THEATER MAP...',
-    'SYSTEM DIAGNOSTICS: PASSED',
-    'W.O.P.R ONLINE // READY'
-  ];
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Game state
+        let gameActive = false;
+        let defconLevel = 3;
+        let missileCount = 0;
+        let missiles = [];
+        let mapMissiles = [];
+        let geoData = null;
+        let systemReady = false;
 
-  function fitSplashCanvas() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = splashCanvas.clientWidth;
-    const h = splashCanvas.clientHeight;
-    splashCanvas.width = w * dpr;
-    splashCanvas.height = h * dpr;
-    splashCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
+        // Country coordinates (lat, lon) for markers and targeting
+        const countries = {
+            USA: { lat: 39.8283, lon: -98.5795 },
+            RUSSIA: { lat: 61.5240, lon: 105.3188 },
+            CHINA: { lat: 35.8617, lon: 104.1954 },
+            UK: { lat: 55.3781, lon: -3.4360 },
+            FRANCE: { lat: 46.2276, lon: 2.2137 },
+            GERMANY: { lat: 51.1657, lon: 10.4515 },
+            INDIA: { lat: 20.5937, lon: 78.9629 },
+            JAPAN: { lat: 36.2048, lon: 138.2529 },
+            CANADA: { lat: 56.1304, lon: -106.3468 },
+            AUSTRALIA: { lat: -25.2744, lon: 133.7751 }
+        };
 
-  function drawSplashGlobe() {
-    const w = splashCanvas.clientWidth;
-    const h = splashCanvas.clientHeight;
-    splashCtx.clearRect(0, 0, w, h);
-    
-    // Grid
-    splashCtx.save();
-    splashCtx.strokeStyle = '#2fa62f';
-    splashCtx.globalAlpha = 0.15;
-    splashCtx.lineWidth = 0.5;
-    for(let i = 0; i <= 20; i++) {
-      splashCtx.beginPath();
-      splashCtx.moveTo(i * w / 20, 0);
-      splashCtx.lineTo(i * w / 20, h);
-      splashCtx.stroke();
-    }
-    for(let i = 0; i <= 12; i++) {
-      splashCtx.beginPath();
-      splashCtx.moveTo(0, i * h / 12);
-      splashCtx.lineTo(w, i * h / 12);
-      splashCtx.stroke();
-    }
-    splashCtx.restore();
-    
-    // Wireframe globe
-    splashCtx.save();
-    splashCtx.strokeStyle = '#33ff33';
-    splashCtx.globalAlpha = 0.6;
-    splashCtx.lineWidth = 1;
-    const cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.35;
-    
-    splashCtx.beginPath();
-    splashCtx.arc(cx, cy, r, 0, Math.PI * 2);
-    splashCtx.stroke();
-    
-    for(let i = 1; i < 6; i++) {
-      const ry = r * Math.sin(i * Math.PI / 6);
-      splashCtx.beginPath();
-      splashCtx.ellipse(cx, cy, r * Math.cos(i * Math.PI / 6), ry, 0, 0, Math.PI * 2);
-      splashCtx.stroke();
-    }
-    
-    for(let i = 0; i < 6; i++) {
-      splashCtx.beginPath();
-      splashCtx.ellipse(cx, cy, r * Math.abs(Math.cos(i * Math.PI / 6)), r, 0, 0, Math.PI * 2);
-      splashCtx.stroke();
-    }
-    splashCtx.restore();
-  }
+        // Terminal functions
+        const terminalOutput = document.getElementById('terminalOutput');
+        const commandInput = document.getElementById('commandInput');
 
-  function typeLogLine(index) {
-    if(index >= bootMessages.length) return;
-    const line = document.createElement('div');
-    line.textContent = bootMessages[index];
-    splashLog.appendChild(line);
-    
-    setTimeout(() => typeLogLine(index + 1), 350 + Math.random() * 300);
-  }
-
-  function startBoot() {
-    fitSplashCanvas();
-    drawSplashGlobe();
-    typeLogLine(0);
-    
-    setTimeout(() => {
-      splash.classList.add('fade-out');
-      setTimeout(() => {
-        splash.style.display = 'none';
-        initApp();
-      }, 1000);
-    }, 5000 + Math.random() * 2000);
-  }
-
-  // DRAGGABLE TERMINAL
-  function makeDraggable(panel, handle) {
-    let isDragging = false, startX, startY, startLeft, startTop;
-    
-    const saved = localStorage.getItem('term-pos');
-    if(saved) {
-      const {left, top} = JSON.parse(saved);
-      panel.style.left = left + 'px';
-      panel.style.top = top + 'px';
-      panel.style.bottom = 'auto';
-    }
-    
-    handle.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      const rect = panel.getBoundingClientRect();
-      startLeft = rect.left;
-      startTop = rect.top;
-      panel.style.bottom = 'auto';
-      e.preventDefault();
-    });
-    
-    window.addEventListener('mousemove', (e) => {
-      if(!isDragging) return;
-      let newLeft = startLeft + (e.clientX - startX);
-      let newTop = startTop + (e.clientY - startY);
-      newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - panel.offsetWidth));
-      newTop = Math.max(0, Math.min(newTop, window.innerHeight - panel.offsetHeight));
-      panel.style.left = newLeft + 'px';
-      panel.style.top = newTop + 'px';
-    });
-    
-    window.addEventListener('mouseup', () => {
-      if(isDragging) {
-        isDragging = false;
-        localStorage.setItem('term-pos', JSON.stringify({
-          left: parseInt(panel.style.left),
-          top: parseInt(panel.style.top)
-        }));
-      }
-    });
-  }
-
-  // MAIN APP
-  const termOut = document.getElementById('terminal-output');
-  const cmdInput = document.getElementById('command-input');
-  const worldCanvas = document.getElementById('world-canvas');
-  const chartCanvas = document.getElementById('chart-canvas');
-  const worldCtx = worldCanvas.getContext('2d');
-  const chartCtx = chartCanvas.getContext('2d');
-
-  function print(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    termOut.appendChild(div);
-    termOut.scrollTop = termOut.scrollHeight;
-  }
-
-  function fitCanvas(c, ctx) {
-    const dpr = window.devicePixelRatio || 1;
-    const w = c.clientWidth, h = c.clientHeight;
-    c.width = w * dpr;
-    c.height = h * dpr;
-    c.style.width = w + 'px';
-    c.style.height = h + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  function drawWorld() {
-    const w = worldCanvas.clientWidth, h = worldCanvas.clientHeight;
-    worldCtx.clearRect(0, 0, w, h);
-    
-    worldCtx.save();
-    worldCtx.strokeStyle = '#2fa62f';
-    worldCtx.globalAlpha = 0.12;
-    worldCtx.lineWidth = 0.6;
-    for(let i = 0; i <= 20; i++) {
-      worldCtx.beginPath();
-      worldCtx.moveTo(i * w / 20, 0);
-      worldCtx.lineTo(i * w / 20, h);
-      worldCtx.stroke();
-    }
-    for(let i = 0; i <= 12; i++) {
-      worldCtx.beginPath();
-      worldCtx.moveTo(0, i * h / 12);
-      worldCtx.lineTo(w, i * h / 12);
-      worldCtx.stroke();
-    }
-    worldCtx.restore();
-    
-    // Simple continent outlines
-    worldCtx.save();
-    worldCtx.strokeStyle = '#33ff33';
-    worldCtx.globalAlpha = 0.6;
-    worldCtx.lineWidth = 1;
-    
-    // North America
-    worldCtx.beginPath();
-    worldCtx.moveTo(w*0.15, h*0.2);
-    worldCtx.lineTo(w*0.25, h*0.15);
-    worldCtx.lineTo(w*0.3, h*0.35);
-    worldCtx.lineTo(w*0.2, h*0.5);
-    worldCtx.lineTo(w*0.15, h*0.2);
-    worldCtx.stroke();
-    
-    // Europe
-    worldCtx.beginPath();
-    worldCtx.moveTo(w*0.48, h*0.25);
-    worldCtx.lineTo(w*0.52, h*0.22);
-    worldCtx.lineTo(w*0.55, h*0.3);
-    worldCtx.lineTo(w*0.48, h*0.25);
-    worldCtx.stroke();
-    
-    worldCtx.restore();
-  }
-
-  function drawChart() {
-    const w = chartCanvas.clientWidth, h = chartCanvas.clientHeight;
-    chartCtx.clearRect(0, 0, w, h);
-    
-    chartCtx.save();
-    chartCtx.strokeStyle = '#2fa62f';
-    chartCtx.globalAlpha = 0.1;
-    chartCtx.lineWidth = 0.6;
-    for(let i = 0; i <= 10; i++) {
-      chartCtx.beginPath();
-      chartCtx.moveTo(i * w / 10, 0);
-      chartCtx.lineTo(i * w / 10, h);
-      chartCtx.stroke();
-    }
-    for(let i = 0; i <= 6; i++) {
-      chartCtx.beginPath();
-      chartCtx.moveTo(0, i * h / 6);
-      chartCtx.lineTo(w, i * h / 6);
-      chartCtx.stroke();
-    }
-    chartCtx.restore();
-    
-    // Sample bars
-    chartCtx.save();
-    chartCtx.fillStyle = '#33ff33';
-    chartCtx.globalAlpha = 0.7;
-    const barW = 40, gap = 20;
-    for(let i = 0; i < 5; i++) {
-      const barH = (50 + Math.random() * 150);
-      chartCtx.fillRect(50 + i * (barW + gap), h - 40 - barH, barW, barH);
-    }
-    chartCtx.restore();
-  }
-
-  function redraw() {
-    fitCanvas(worldCanvas, worldCtx);
-    fitCanvas(chartCanvas, chartCtx);
-    drawWorld();
-    drawChart();
-  }
-
-  function initApp() {
-    document.getElementById('status').textContent = 'ONLINE';
-    print('WOPR CHANNEL OPERATIONS CONSOLE');
-    print('TYPE HELP FOR COMMANDS');
-    print('');
-    
-    makeDraggable(
-      document.getElementById('terminal-section'),
-      document.getElementById('term-handle')
-    );
-    
-    redraw();
-    window.addEventListener('resize', redraw);
-  }
-
-  cmdInput.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter') {
-      const cmd = cmdInput.value.trim().toUpperCase();
-      if(cmd) {
-        print('> ' + cmd);
-        if(cmd === 'HELP') {
-          print('AVAILABLE COMMANDS:');
-          print('  HELP - Show commands');
-          print('  STATUS - System status');
-          print('  CLEAR - Clear terminal');
-        } else if(cmd === 'STATUS') {
-          print('SYSTEM STATUS: OPERATIONAL');
-          print('DEFCON: 5');
-        } else if(cmd === 'CLEAR') {
-          termOut.innerHTML = '';
-        } else {
-          print('UNKNOWN COMMAND');
+        function addLine(text, isAlert = false, isLoading = false) {
+            const line = document.createElement('div');
+            line.className = 'terminal-line' + (isAlert ? ' alert' : '') + (isLoading ? ' loading' : '');
+            line.textContent = text;
+            terminalOutput.appendChild(line);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
         }
-        print('');
-        cmdInput.value = '';
-      }
-    }
-  });
 
-  startBoot();
-  </script>
+        function updateStatus() {
+            document.getElementById('defconLevel').textContent = defconLevel;
+            document.getElementById('defconLevel').className = 'defcon-' + defconLevel;
+            document.getElementById('missileCount').textContent = missileCount;
+            document.getElementById('gameStatus').textContent = gameActive ? 'ACTIVE' : 'STANDBY';
+            document.getElementById('systemStatus').textContent = systemReady ? 'ONLINE' : 'LOADING';
+        }
+
+        // Load GeoJSON data
+        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+            .then(response => response.json())
+            .then(data => {
+                geoData = data;
+                addLine('GEOGRAPHIC DATA LOADED');
+                addLine('CONNECTION ESTABLISHED');
+                addLine('');
+                addLine('GREETINGS PROFESSOR FALKEN.');
+                addLine('');
+                addLine('SHALL WE PLAY A GAME?');
+                addLine('');
+                addLine('Type Y or YES to begin');
+                addLine('Type HELP for available commands');
+                addLine('');
+                systemReady = true;
+                updateStatus();
+            })
+            .catch(error => {
+                addLine('WARNING: GEOGRAPHIC DATA LOAD FAILED', true);
+                addLine('CONTINUING WITH BASIC DISPLAY...', true);
+                addLine('');
+                addLine('GREETINGS PROFESSOR FALKEN.');
+                addLine('');
+                addLine('SHALL WE PLAY A GAME?');
+                addLine('');
+                systemReady = true;
+                updateStatus();
+            });
+
+        function launchMissile(source, target) {
+            if (!countries[source] || !countries[target]) {
+                addLine('ERROR: INVALID COUNTRY CODE', true);
+                return;
+            }
+
+            missileCount++;
+            addLine('');
+            addLine('█ MISSILE LAUNCH DETECTED █', true);
+            addLine(`SOURCE: ${source}`);
+            addLine(`TARGET: ${target}`);
+            addLine(`TRAJECTORY: ${source} → ${target}`);
+            addLine(`ESTIMATED TIME TO IMPACT: ${Math.floor(Math.random() * 10 + 15)} MINUTES`);
+
+            // Add to globe missiles
+            const sourceLoc = countries[source];
+            const targetLoc = countries[target];
+            missiles.push({
+                source: { lat: sourceLoc.lat, lon: sourceLoc.lon },
+                target: { lat: targetLoc.lat, lon: targetLoc.lon },
+                progress: 0,
+                active: true
+            });
+
+            // Add to map missiles (convert lat/lon to canvas coordinates)
+            const sourceX = ((sourceLoc.lon + 180) / 360) * mapCanvas.width;
+            const sourceY = ((90 - sourceLoc.lat) / 180) * mapCanvas.height;
+            const targetX = ((targetLoc.lon + 180) / 360) * mapCanvas.width;
+            const targetY = ((90 - targetLoc.lat) / 180) * mapCanvas.height;
+
+            mapMissiles.push({
+                source: { x: sourceX, y: sourceY },
+                target: { x: targetX, y: targetY },
+                progress: 0,
+                active: true,
+                explosion: null
+            });
+
+            // Update DEFCON
+            if (missileCount > 5 && defconLevel > 1) {
+                defconLevel = 1;
+                addLine('');
+                addLine('!!! DEFCON 1 - MAXIMUM READINESS !!!', true);
+            } else if (missileCount > 2 && defconLevel > 2) {
+                defconLevel = 2;
+                addLine('');
+                addLine('!! DEFCON 2 - ARMED FORCES READY !!', true);
+            }
+
+            updateStatus();
+        }
+
+        // Command processor
+        commandInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = commandInput.value.trim().toUpperCase();
+                addLine('WOPR> ' + command);
+                commandInput.value = '';
+
+                if (!systemReady) {
+                    addLine('ERROR: SYSTEM INITIALIZING...', true);
+                    return;
+                }
+
+                if (command === 'Y' || command === 'YES') {
+                    if (!gameActive) {
+                        gameActive = true;
+                        addLine('');
+                        addLine('INITIALIZING GLOBAL THERMONUCLEAR WAR...');
+                        addLine('LOADING SCENARIO: WWIII');
+                        addLine('');
+                        addLine('SYSTEM READY. TYPE LAUNCH [SOURCE] [TARGET] TO FIRE');
+                        addLine('TYPE LIST TO SEE AVAILABLE COUNTRIES');
+                        updateStatus();
+                    } else {
+                        addLine('GAME ALREADY ACTIVE');
+                    }
+                } else if (command.startsWith('LAUNCH ')) {
+                    if (!gameActive) {
+                        addLine('ERROR: START GAME FIRST (TYPE Y)', true);
+                    } else {
+                        const parts = command.split(' ');
+                        if (parts.length === 3) {
+                            launchMissile(parts[1], parts[2]);
+                        } else {
+                            addLine('ERROR: USAGE: LAUNCH [SOURCE] [TARGET]', true);
+                        }
+                    }
+                } else if (command === 'LIST') {
+                    addLine('');
+                    addLine('AVAILABLE COUNTRIES:');
+                    Object.keys(countries).forEach(country => {
+                        addLine('  - ' + country);
+                    });
+                } else if (command === 'STATUS') {
+                    addLine('');
+                    addLine('SYSTEM STATUS REPORT:');
+                    addLine(`DEFCON LEVEL: ${defconLevel}`);
+                    addLine(`MISSILES LAUNCHED: ${missileCount}`);
+                    addLine(`GAME STATUS: ${gameActive ? 'ACTIVE' : 'STANDBY'}`);
+                    addLine(`SYSTEM: ${systemReady ? 'ONLINE' : 'LOADING'}`);
+                } else if (command.startsWith('DEFCON ')) {
+                    const level = parseInt(command.split(' ')[1]);
+                    if (level >= 1 && level <= 5) {
+                        defconLevel = level;
+                        addLine(`DEFCON LEVEL SET TO ${level}`);
+                        updateStatus();
+                    } else {
+                        addLine('ERROR: DEFCON LEVEL MUST BE 1-5', true);
+                    }
+                } else if (command === 'HELP') {
+                    addLine('');
+                    addLine('AVAILABLE COMMANDS:');
+                    addLine('  Y or YES - Start the game');
+                    addLine('  LAUNCH [SOURCE] [TARGET] - Fire missile');
+                    addLine('  LIST - Show available countries');
+                    addLine('  STATUS - Display system status');
+                    addLine('  DEFCON [1-5] - Change DEFCON level');
+                    addLine('  CLEAR - Clear terminal');
+                    addLine('  HELP - Show this help');
+                } else if (command === 'CLEAR') {
+                    terminalOutput.innerHTML = '';
+                } else if (command) {
+                    addLine('UNKNOWN COMMAND. TYPE HELP FOR AVAILABLE COMMANDS', true);
+                }
+
+                addLine('');
+            }
+        });
+
+        // THREE.JS GLOBE SETUP (Using your retro globe code!)
+        const globeCanvas = document.getElementById('globeCanvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, globeCanvas.offsetWidth / globeCanvas.offsetHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: globeCanvas, antialias: true });
+        renderer.setSize(globeCanvas.offsetWidth, globeCanvas.offsetHeight);
+        renderer.setClearColor(0x000000);
+
+        // Create wireframe sphere (your retro style!)
+        const radius = 2;
+        const segments = 32;
+        const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
+        const wireframeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const globe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
+        scene.add(globe);
+
+        // Add country markers on globe
+        Object.entries(countries).forEach(([name, coords]) => {
+            const phi = (90 - coords.lat) * (Math.PI / 180);
+            const theta = (coords.lon + 180) * (Math.PI / 180);
+
+            const x = -radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.cos(phi);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+
+            const markerGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            marker.position.set(x, y, z);
+            scene.add(marker);
+        });
+
+        camera.position.z = 5;
+
+        // Missile trajectories on globe
+        function createGlobeMissileArc(source, target, progress) {
+            const phi1 = (90 - source.lat) * (Math.PI / 180);
+            const theta1 = (source.lon + 180) * (Math.PI / 180);
+            const phi2 = (90 - target.lat) * (Math.PI / 180);
+            const theta2 = (target.lon + 180) * (Math.PI / 180);
+
+            const points = [];
+            for (let i = 0; i <= progress * 50; i++) {
+                const t = i / 50;
+                const phi = phi1 + (phi2 - phi1) * t;
+                const theta = theta1 + (theta2 - theta1) * t;
+                const altitude = Math.sin(t * Math.PI) * 1;
+
+                const x = -(radius + altitude) * Math.sin(phi) * Math.cos(theta);
+                const y = (radius + altitude) * Math.cos(phi);
+                const z = (radius + altitude) * Math.sin(phi) * Math.sin(theta);
+
+                points.push(new THREE.Vector3(x, y, z));
+            }
+
+            if (points.length > 1) {
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
+                return new THREE.Line(geometry, material);
+            }
+            return null;
+        }
+
+        function animateGlobe() {
+            requestAnimationFrame(animateGlobe);
+
+            // Slow rotation for that 80s feel (your code!)
+            globe.rotation.y += 0.003;
+            globe.rotation.x += 0.001;
+
+            // Clear old missile trajectories
+            scene.children = scene.children.filter(child => 
+                child === globe || child.geometry instanceof THREE.SphereGeometry
+            );
+
+            // Draw active missiles
+            missiles.forEach(missile => {
+                if (missile.active) {
+                    missile.progress += 0.005;
+                    if (missile.progress >= 1) {
+                        missile.active = false;
+                    } else {
+                        const arc = createGlobeMissileArc(missile.source, missile.target, missile.progress);
+                        if (arc) scene.add(arc);
+                    }
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animateGlobe();
+
+        // 2D MAP WITH GEOJSON DATA
+        const mapCanvas = document.getElementById('mapCanvas');
+        const mapCtx = mapCanvas.getContext('2d');
+
+        function resizeMap() {
+            mapCanvas.width = mapCanvas.offsetWidth;
+            mapCanvas.height = mapCanvas.offsetHeight;
+        }
+        resizeMap();
+        window.addEventListener('resize', resizeMap);
+
+        // Convert lat/lon to canvas coordinates
+        function projectToCanvas(lon, lat) {
+            const x = ((lon + 180) / 360) * mapCanvas.width;
+            const y = ((90 - lat) / 180) * mapCanvas.height;
+            return { x, y };
+        }
+
+        // Draw countries from GeoJSON
+        function drawWorldMap() {
+            if (!geoData) return;
+
+            mapCtx.strokeStyle = '#33ff33';
+            mapCtx.lineWidth = 1;
+            mapCtx.shadowBlur = 5;
+            mapCtx.shadowColor = '#33ff33';
+
+            geoData.features.forEach(feature => {
+                const geometry = feature.geometry;
+                
+                if (geometry.type === 'Polygon') {
+                    drawPolygon(geometry.coordinates);
+                } else if (geometry.type === 'MultiPolygon') {
+                    geometry.coordinates.forEach(polygon => {
+                        drawPolygon(polygon);
+                    });
+                }
+            });
+        }
+
+        function drawPolygon(coordinates) {
+            coordinates.forEach(ring => {
+                mapCtx.beginPath();
+                ring.forEach((coord, index) => {
+                    const point = projectToCanvas(coord[0], coord[1]);
+                    if (index === 0) {
+                        mapCtx.moveTo(point.x, point.y);
+                    } else {
+                        mapCtx.lineTo(point.x, point.y);
+                    }
+                });
+                mapCtx.closePath();
+                mapCtx.stroke();
+            });
+        }
+
+        function drawCountryMarkers() {
+            mapCtx.fillStyle = '#ff0000';
+            mapCtx.shadowBlur = 8;
+            mapCtx.shadowColor = '#ff0000';
+
+            Object.entries(countries).forEach(([name, coords]) => {
+                const point = projectToCanvas(coords.lon, coords.lat);
+                
+                mapCtx.beginPath();
+                mapCtx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+                mapCtx.fill();
+
+                mapCtx.fillStyle = '#33ff33';
+                mapCtx.shadowBlur = 5;
+                mapCtx.shadowColor = '#33ff33';
+                mapCtx.font = '11px Courier New';
+                mapCtx.fillText(name, point.x + 8, point.y + 4);
+                mapCtx.fillStyle = '#ff0000';
+                mapCtx.shadowBlur = 8;
+                mapCtx.shadowColor = '#ff0000';
+            });
+        }
+
+        function drawMissileTrajectory(source, target, progress) {
+            const dx = target.x - source.x;
+            const dy = target.y - source.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const arcHeight = distance * 0.3;
+
+            mapCtx.strokeStyle = '#ff0000';
+            mapCtx.lineWidth = 2;
+            mapCtx.shadowBlur = 10;
+            mapCtx.shadowColor = '#ff0000';
+            mapCtx.setLineDash([5, 5]);
+
+            mapCtx.beginPath();
+            mapCtx.moveTo(source.x, source.y);
+
+            for (let i = 0; i <= progress; i += 0.02) {
+                const x = source.x + dx * i;
+                const y = source.y + dy * i - Math.sin(i * Math.PI) * arcHeight;
+                mapCtx.lineTo(x, y);
+            }
+            mapCtx.stroke();
+            mapCtx.setLineDash([]);
+
+            // Draw missile position
+            if (progress < 1) {
+                const currentX = source.x + dx * progress;
+                const currentY = source.y + dy * progress - Math.sin(progress * Math.PI) * arcHeight;
+                
+                mapCtx.fillStyle = '#ffff00';
+                mapCtx.shadowBlur = 15;
+                mapCtx.shadowColor = '#ffff00';
+                mapCtx.beginPath();
+                mapCtx.arc(currentX, currentY, 3, 0, Math.PI * 2);
+                mapCtx.fill();
+            }
+        }
+
+        function drawExplosion(x, y, frame) {
+            const maxFrames = 30;
+            const radius = (frame / maxFrames) * 50;
+            const opacity = 1 - (frame / maxFrames);
+
+            mapCtx.shadowBlur = 20;
+            mapCtx.shadowColor = '#ff0000';
+
+            // Outer ring
+            mapCtx.strokeStyle = `rgba(255, 0, 0, ${opacity})`;
+            mapCtx.lineWidth = 3;
+            mapCtx.beginPath();
+            mapCtx.arc(x, y, radius, 0, Math.PI * 2);
+            mapCtx.stroke();
+
+            // Inner ring
+            mapCtx.strokeStyle = `rgba(255, 255, 0, ${opacity})`;
+            mapCtx.lineWidth = 2;
+            mapCtx.beginPath();
+            mapCtx.arc(x, y, radius * 0.6, 0, Math.PI * 2);
+            mapCtx.stroke();
+
+            // Center flash
+            mapCtx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            mapCtx.beginPath();
+            mapCtx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
+            mapCtx.fill();
+        }
+
+        function animateMap() {
+            requestAnimationFrame(animateMap);
+
+            mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
+            
+            drawWorldMap();
+            drawCountryMarkers();
+
+            mapMissiles.forEach(missile => {
+                if (missile.active) {
+                    missile.progress += 0.008;
+                    
+                    if (missile.progress >= 1) {
+                        missile.active = false;
+                        missile.explosion = { frame: 0 };
+                    } else {
+                        drawMissileTrajectory(missile.source, missile.target, missile.progress);
+                    }
+                } else if (missile.explosion && missile.explosion.frame < 30) {
+                    drawExplosion(missile.target.x, missile.target.y, missile.explosion.frame);
+                    missile.explosion.frame++;
+                }
+            });
+        }
+
+        animateMap();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = globeCanvas.offsetWidth / globeCanvas.offsetHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(globeCanvas.offsetWidth, globeCanvas.offsetHeight);
+            resizeMap();
+        });
+    </script>
 </body>
 </html>
