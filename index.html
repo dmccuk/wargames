@@ -1,304 +1,180 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>WOPR // Global Thermonuclear War (Retro UI)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WOPR - Global Thermonuclear War (Retro Green)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
     :root{
-      --phosphor: #3cff8f;
-      --phosphor-dim: #2bdd6f;
-      --bg: #020402;
-      --amber: #ffe08a;
-      --red: #ff4d4d;
+      --phosphor: #3cff8f; /* retro green */
+      --bg: #050807;       /* deep CRT black */
+      --red: #ff4d4d;      /* alert */
+      --amber: #ffe08a;    /* ok */
     }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    *{margin:0; padding:0; box-sizing:border-box}
     body{
-      margin:0; background: var(--bg); color: var(--phosphor);
-      font-family: 'VT323', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      letter-spacing: 0.5px; line-height:1.2;
-      overflow:hidden;
+      background: var(--bg);
+      font-family: 'VT323', monospace;
+      color: var(--phosphor);
+      overflow: hidden; font-size: 20px; letter-spacing:.4px;
     }
-    /* CRT feel */
-    .crt::before{ /* scanlines */
-      content:""; position:fixed; inset:0; pointer-events:none; z-index:9999;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(0,0,0,0) 0px,
-        rgba(0,0,0,0) 2px,
-        rgba(0,0,0,0.12) 3px
-      );
-      mix-blend-mode: multiply;
-    }
-    .crt::after{ /* vignette */
-      content:""; position:fixed; inset:0; pointer-events:none; z-index:9998;
-      background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.6) 100%);
-    }
+    /* CRT scanlines + vignette */
+    body::before{content:""; position:fixed; inset:0; pointer-events:none; z-index:9999;
+      background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.12) 3px);
+      mix-blend-mode: multiply;}
+    body::after{content:""; position:fixed; inset:0; pointer-events:none; z-index:9998;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.55) 100%);}
 
-    .glow { text-shadow: 0 0 6px rgba(60,255,143,0.8), 0 0 18px rgba(60,255,143,0.4); }
-    .dim  { color: var(--phosphor-dim); opacity:0.9 }
-
-    header{
-      padding: 10px 14px; border-bottom: 1px solid rgba(60,255,143,0.25);
-      display:flex; gap:16px; align-items:center; justify-content:space-between;
+    #header, #footer{
+      position: absolute; left:0; right:0; padding:10px 20px; display:flex; justify-content:space-between; align-items:center;
+      text-shadow: 0 0 10px rgba(60,255,143,0.8), 0 0 20px rgba(60,255,143,0.4);
+      z-index: 100; border-bottom:1px solid rgba(60,255,143,0.35);
     }
-    header .title{ font-size: 28px; }
-    header .status{ font-size: 18px; opacity:0.9 }
-    header .blink { animation: blink 1s steps(1,end) infinite; }
-    @keyframes blink{ 50% { opacity: 0.2 } }
+    #footer{ bottom:0; top:auto; border-bottom:none; border-top:1px solid rgba(60,255,143,0.35); }
 
-    main{
-      display:grid; grid-template-columns: 1.2fr 1.8fr; gap: 8px;
-      height: calc(100% - 100px);
-      padding: 8px 12px;
-    }
+    #main-container{ position:absolute; top:50px; bottom:50px; left:0; right:0; display:flex; gap:0; }
 
-    .panel{
-      position:relative; border: 1px solid rgba(60,255,143,0.25); border-radius: 10px;
-      padding: 12px; background: linear-gradient( to bottom, rgba(60,255,143,0.04), rgba(60,255,143,0.02) 60%, rgba(60,255,143,0.03) );
-      box-shadow: inset 0 0 24px rgba(60,255,143,0.08), 0 0 24px rgba(60,255,143,0.06);
-    }
+    #terminal-section{ width:40%; border-right:1px solid rgba(60,255,143,0.35); display:flex; flex-direction:column; background: rgba(60,255,143,0.03); }
+    #terminal-output{ flex:1; overflow-y:auto; padding:20px; text-shadow: 0 0 8px rgba(60,255,143,0.6); }
+    #input-line{ padding:10px 20px; border-top:1px solid rgba(60,255,143,0.35); display:flex; align-items:center; gap:8px; }
+    #prompt{ margin-right:6px; opacity:0.9 }
+    #command-input{ flex:1; background:transparent; border:none; color:var(--phosphor); font-family:'VT323', monospace; font-size:20px; outline:none; text-shadow: 0 0 8px rgba(60,255,143,0.6); }
+    .cursor{ width:10px; height:20px; background: var(--phosphor); box-shadow:0 0 6px rgba(60,255,143,0.8); animation: blink 1s steps(1,end) infinite; }
+    @keyframes blink{ 50%{opacity:0.2} }
+    .output-line{ margin-bottom:6px; }
+    .error{ color: var(--red); text-shadow:0 0 10px rgba(255,77,77,0.6) }
+    .warning{ color: var(--amber); text-shadow:0 0 10px rgba(255,224,138,0.5) }
 
-    /* Terminal */
-    #terminal{
-      height: 100%;
-      overflow: hidden;
-      display:flex; flex-direction:column;
-    }
-    #term-output{
-      flex:1; overflow:auto; padding-right:6px; white-space:pre-wrap;
-      font-size: 20px;
-    }
-    #prompt{ display:flex; gap:8px; align-items:center; }
-    #cursor{ width: 10px; height: 18px; background: var(--phosphor); box-shadow: 0 0 8px rgba(60,255,143,0.8); }
+    #globe-section{ flex:1; position:relative; background: rgba(60,255,143,0.02); }
+    #status-display{ position:absolute; bottom:16px; left:50%; transform:translateX(-50%); text-align:center; text-shadow: 0 0 8px rgba(60,255,143,0.6); z-index:10; }
+    .scan-line{ position:absolute; inset:0; pointer-events:none; background: linear-gradient(to bottom, transparent 50%, rgba(60,255,143,0.06) 51%); background-size:100% 4px; z-index:5; }
 
-    /* Radar / globe panel */
-    #globe-wrap{ position:relative; height:100%; }
-    #globe { position:absolute; inset:0; }
-
-    .overlay-stats{
-      position:absolute; left:12px; bottom:12px; font-size:16px; opacity:0.9;
-    }
-
-    footer{
-      height: 60px; display:flex; align-items:center; gap:18px; padding: 0 14px; border-top: 1px solid rgba(60,255,143,0.25);
-    }
-    .badge{ border:1px solid rgba(60,255,143,0.35); padding: 4px 10px; border-radius: 999px; font-size: 18px; }
-    .warn{ color: var(--red); text-shadow: 0 0 10px rgba(255,77,77,0.6); border-color: rgba(255,77,77,0.4) }
-    .ok{ color: var(--amber); text-shadow: 0 0 10px rgba(255,224,138,0.5) }
-
-    /* Small screens */
-    @media (max-width: 900px){
-      main{ grid-template-columns: 1fr; height: calc(100% - 120px); }
-      header .title{ font-size: 22px }
-    }
-    /* Remove default focus ring and use glow */
-    .panel:focus, #terminal:focus { outline: none; box-shadow: 0 0 0 2px rgba(60,255,143,0.35), inset 0 0 24px rgba(60,255,143,0.08); }
+    @media (max-width: 900px){ #terminal-section{ width:100%; } #main-container{ flex-direction:column; } #globe-section{ height:50%; } }
   </style>
 </head>
-<body class="crt">
-  <header>
-    <div class="title glow">W.O.P.R // GLOBAL THERMONUCLEAR WAR</div>
-    <div class="status">CONNECTION: <span class="blink">●●●</span> SECURE LINK ESTABLISHED</div>
-  </header>
+<body>
+  <div id="header">
+    <div>W.O.P.R // GLOBAL THERMONUCLEAR WAR</div>
+    <div>CONNECTION: <span id="connection-status">SECURE LINK ESTABLISHED</span></div>
+  </div>
 
-  <main>
-    <section class="panel" id="terminal" tabindex="0" aria-label="Terminal (click to focus)">
-      <div id="term-output" aria-live="polite"></div>
-      <div id="prompt"><span class="dim">&gt;</span><span id="typing"></span><span id="cursor"></span></div>
-      <!-- Invisible, focusable input to reliably capture typing in all embeds/browsers -->
-      <input id="ghost-input" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal input" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;" />
-    </section>
+  <div id="main-container">
+    <div id="terminal-section">
+      <div id="terminal-output"></div>
+      <div id="input-line"><span id="prompt">&gt;</span><input type="text" id="command-input" autocomplete="off" /><span class="cursor"></span></div>
+    </div>
+    <div id="globe-section">
+      <div class="scan-line"></div>
+      <div id="status-display">MODE: GLOBAL STRATEGY | TRACKS: <span id="track-count">0</span> | DEFCON: <span id="defcon">5</span></div>
+    </div>
+  </div>
 
-    <section class="panel" id="globe-wrap">
-      <div id="globe"></div>
-      <div class="overlay-stats dim">
-        MODE: <span class="glow">GLOBAL STRATEGY</span> | TRACKS: <span id="tracks-count">0</span> | DEFCON: <span class="warn glow">3</span>
-      </div>
-    </section>
-  </main>
+  <div id="footer">
+    <div>NORAD // CHEYENNE MTN</div>
+    <div>SIM: <span id="sim-status">ACTIVE</span></div>
+    <div>LAST INPUT: <span id="last-input">—</span></div>
+  </div>
 
-  <footer>
-    <div class="badge">NORAD // CHEYENNE MTN</div>
-    <div class="badge ok">SIM: ACTIVE</div>
-    <div class="badge">LAST INPUT: <span id="last-input">—</span></div>
-  </footer>
-
-  <!-- Three.js for the 3D globe (modern), styled to look retro -->
-  <script type="module">
-(() => {
-  // ---- Error surface ----
-  window.onerror = (msg, src, line, col, err) => {
-    const term = document.getElementById('term-output');
-    if (term) { const d = document.createElement('div'); d.style.color = '#ff4d4d'; d.textContent = '[ERROR] ' + (err && err.message ? err.message : msg); term.appendChild(d); }
-  };
-
-  // ---- Terminal ----
-  const termOut = document.getElementById('term-output');
-  const typing = document.getElementById('typing');
-  const lastInput = document.getElementById('last-input');
-  const ghost = document.getElementById('ghost-input');
-  const termEl = document.getElementById('terminal');
-
-  let inputBuffer = '';
-  let history = [];
-  let historyIndex = -1;
-  let terminalActive = false;
-
-  const bootLines = [
-    'LOGON: JOSHUA',
-    'PASSWORD: ••••••••',
-    'IDENTIFICATION NOT RECOGNIZED',
-    'OVERRIDE: LIST GAMES',
-    '',
-    'GAMES:',
-    '  BLACK JACK', '  GIN RUMMY', '  FIGHTER COMBAT', '  GUERRILLA ENGAGEMENT', '  DESERT WARFARE',
-    '  AIR-TO-GROUND ACTIONS', '  THEATERWIDE TACTICAL WARFARE', '  GLOBAL THERMONUCLEAR WAR',
-    '', 'SHALL WE PLAY A GAME? (Y/N)'
-  ];
-
-  function printLine(line = '') { const div = document.createElement('div'); div.textContent = line; termOut.appendChild(div); termOut.scrollTop = termOut.scrollHeight; }
-  function typeToPrompt(str){ typing.textContent = str; }
-  const wait = (ms) => new Promise(r => setTimeout(r, ms));
-  async function boot(){ for (const l of bootLines){ await wait(200); printLine(l); } }
-
-  function handleCommand(cmd){
-    const u = cmd.trim(); const U = u.toUpperCase();
-    lastInput.textContent = u || '—';
-    printLine('> ' + u);
-    if (!U) return;
-    if (U === 'HELP') {
-      printLine('COMMANDS: HELP, DEFCON, LIST, RUN <GAME>, CLEAR, STATUS');
-    } else if (U === 'LIST') {
-      for (const l of bootLines.slice(5, bootLines.length-1)) printLine(l);
-    } else if (U.startsWith('RUN ')) {
-      const game = U.slice(4);
-      if (game.includes('THERMONUCLEAR')){ printLine('LAUNCHING: GLOBAL THERMONUCLEAR WAR…'); triggerStrikeDemo(); }
-      else { printLine('SIMULATION: ' + game + ' (NOT INSTALLED)'); }
-    } else if (U === 'DEFCON') {
-      printLine('CURRENT DEFCON: 3');
-    } else if (U === 'STATUS') {
-      printLine('WOPR STATUS: IDLE; STRATEGY MODEL: ACTIVE;');
-    } else if (U === 'CLEAR') {
-      termOut.innerHTML = '';
-    } else {
-      printLine('UNKNOWN COMMAND. TYPE HELP');
-    }
-  }
-
-  function focusTerminal(){ terminalActive = true; try{ ghost.focus({preventScroll:true}); } catch { ghost.focus(); } }
-  document.addEventListener('DOMContentLoaded', () => { focusTerminal(); boot(); });
-  termEl.addEventListener('mousedown', focusTerminal);
-  termEl.addEventListener('touchstart', focusTerminal);
-  termEl.addEventListener('focus', focusTerminal);
-
-  ghost.addEventListener('input', () => { inputBuffer = ghost.value; typeToPrompt(inputBuffer); });
-  ghost.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); }
-    if (e.key === 'ArrowUp'){ if (history.length){ historyIndex = Math.min(historyIndex+1, history.length-1); inputBuffer = history[historyIndex]; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); }
-    if (e.key === 'ArrowDown'){ if (history.length){ historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); }
-  });
-
-  document.addEventListener('keydown', (e)=>{
-    const tag = document.activeElement && document.activeElement.tagName || '';
-    if (!terminalActive || tag === 'INPUT' || tag === 'TEXTAREA') return;
-    if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); return; }
-    if (e.key === 'Backspace'){ inputBuffer = inputBuffer.slice(0,-1); ghost.value=inputBuffer; typeToPrompt(inputBuffer); e.preventDefault(); return; }
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown'){
-      if (history.length){ if (e.key === 'ArrowUp') historyIndex = Math.min(historyIndex+1, history.length-1); else historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); return; }
-    if (e.key.length === 1 && !e.metaKey && !e.ctrlKey){ inputBuffer += e.key; ghost.value=inputBuffer; typeToPrompt(inputBuffer); e.preventDefault(); }
-  });
-
-  // ---- Canvas globe (always available) ----
-  const wrap = document.getElementById('globe');
-  const tracksCount = document.getElementById('tracks-count');
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  wrap.innerHTML = ''; wrap.appendChild(canvas);
-
-  function onResize(){
-    const r = wrap.getBoundingClientRect();
-    const w = Math.max(1, Math.floor(r.width));
-    const h = Math.max(1, Math.floor(r.height));
-    if (canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
-  }
-  new ResizeObserver(onResize).observe(wrap);
-  window.addEventListener('resize', onResize);
-  onResize();
-
-  const R = 160; let rot = 0; const tracks = [];
-  function triggerStrikeDemo(){
-    const cities = [
-      { name:'SEATTLE', lat:47.6062, lon:-122.3321 },
-      { name:'SAN FRANCISCO', lat:37.7749, lon:-122.4194 },
-      { name:'NEW YORK', lat:40.7128, lon:-74.0060 },
-      { name:'LONDON', lat:51.5074, lon:-0.1278 },
-      { name:'PARIS', lat:48.8566, lon:2.3522 },
-      { name:'MOSCOW', lat:55.7558, lon:37.6173 },
-      { name:'BEIJING', lat:39.9042, lon:116.4074 },
-      { name:'TOKYO', lat:35.6762, lon:139.6503 }
-    ];
-    for (let i=0;i<6;i++){ const a=cities[Math.floor(Math.random()*cities.length)], b=cities[Math.floor(Math.random()*cities.length)]; if (a!==b) addTrack(a,b, 6000+Math.random()*4000); }
-  }
-
-  function addTrack(from,to,duration){ const start=Date.now(); tracks.push({from,to,start,duration,done:false}); tracksCount.textContent = tracks.filter(t=>!t.done).length; }
-  function rotY(x,z,a){ const ca=Math.cos(a), sa=Math.sin(a); return {x: x*ca - z*sa, z: x*sa + z*ca}; }
-  function latLonToXYZ(lat,lon,rad){ const phi=(90-lat)*(Math.PI/180), theta=(lon+180)*(Math.PI/180); const x = -rad*Math.sin(phi)*Math.cos(theta); const z = rad*Math.sin(phi)*Math.sin(theta); const y = rad*Math.cos(phi); return {x,y,z}; }
-  function proj(x,y,z){ const scale = 300/(300+z); return {x: canvas.width/2 + x*scale, y: canvas.height/2 + y*scale}; }
-
-  function drawGraticule(){
-    ctx.globalAlpha=0.9; ctx.lineWidth=1; ctx.lineCap='round';
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--phosphor') || '#3cff8f';
-    function strokeFront(points){ ctx.beginPath(); let penDown=false; let prevS=null; for (let i=0;i<points.length;i++){ const p=points[i]; const r=rotY(p.x,p.z,rot); const zc=r.z; if (zc<=0){ penDown=false; prevS=null; continue; } const s=proj(r.x,p.y,zc); if (!penDown){ ctx.moveTo(s.x,s.y); penDown=true; prevS=s; continue; } const dx=s.x-prevS.x, dy=s.y-prevS.y; if (dx*dx + dy*dy > 2500){ ctx.moveTo(s.x,s.y); } else { ctx.lineTo(s.x,s.y); } prevS=s; } ctx.stroke(); }
-    for (let lat=-60; lat<=60; lat+=30){ const pts=[]; for (let lon=-180; lon<=180; lon+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
-    for (let lon=0; lon<180; lon+=20){ const pts=[]; for (let lat=-90; lat<=90; lat+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
-  }
-
-  function drawTracks(){
-    const now = Date.now();
-    ctx.lineWidth=2; ctx.globalAlpha=0.9; ctx.lineCap='round'; ctx.strokeStyle='#3cff8f';
-    tracks.forEach(t=>{
-      const p1=latLonToXYZ(t.from.lat,t.from.lon,R);
-      const p2=latLonToXYZ(t.to.lat,t.to.lon,R);
-      const mid={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2 + R*0.5, z:(p1.z+p2.z)/2};
-      const steps=160; const elapsed=Math.min(1,(now-t.start)/t.duration); const endIdx=Math.floor(steps*elapsed);
-      ctx.beginPath(); let penDown=false; let prevS=null;
-      for (let i=0;i<=endIdx;i++){
-        const a=i/steps;
-        const xa=(1-a)*(1-a)*p1.x + 2*(1-a)*a*mid.x + a*a*p2.x;
-        const ya=(1-a)*(1-a)*p1.y + 2*(1-a)*a*mid.y + a*a*p2.y;
-        const za=(1-a)*(1-a)*p1.z + 2*(1-a)*a*mid.z + a*a*p2.z;
-        const r=rotY(xa,za,rot); const zc=r.z; if (zc<=0){ penDown=false; prevS=null; continue; }
-        const s=proj(r.x,ya,zc);
-        if (!penDown){ ctx.moveTo(s.x,s.y); penDown=true; prevS=s; continue; }
-        const dx=s.x-prevS.x, dy=s.y-prevS.y; if (dx*dx + dy*dy > 2500){ ctx.moveTo(s.x,s.y); } else { ctx.lineTo(s.x,s.y); } prevS=s;
-      }
-      ctx.stroke(); if (elapsed>=1) t.done=true;
-    });
-    tracksCount.textContent = tracks.filter(t=>!t.done).length;
-  }
-
-  function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); rot += 0.003; drawGraticule(); drawTracks(); requestAnimationFrame(draw); }
-  draw();
-  setInterval(() => triggerStrikeDemo(), 9000);
-})();
-</script>
-
+  <!-- Three.js r128 (as in your code). If your network blocks CDN, grab this file locally. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // Accessibility: ensure high-contrast focus ring on key nav
-    let hadKeyboardEvent = false;
-    const mod = e=>{
-      if (e.type === 'keydown') hadKeyboardEvent = true;
-      else if (e.type === 'mousedown' || e.type === 'touchstart') hadKeyboardEvent = false;
-      document.body.classList.toggle('kbd-nav', hadKeyboardEvent);
-    };
-    window.addEventListener('keydown', mod, true);
-    window.addEventListener('mousedown', mod, true);
-    window.addEventListener('touchstart', mod, true);
+  (function(){
+    // ------- Terminal helpers -------
+    const term = document.getElementById('terminal-output');
+    const input = document.getElementById('command-input');
+    const lastInput = document.getElementById('last-input');
+    const trackCountDisplay = document.getElementById('track-count');
+    const defconDisplay = document.getElementById('defcon');
+
+    function printLine(text, cls=''){ const div=document.createElement('div'); div.className = 'output-line ' + cls; div.textContent=text; term.appendChild(div); term.scrollTop = term.scrollHeight; }
+
+    // Boot text
+    const boot = [
+      'WOPR (WAR OPERATION PLAN RESPONSE)','', 'LOGON: JOSHUA','PASSWORD: ********','IDENTIFICATION NOT RECOGNIZED','OVERRIDE: LIST GAMES','', 'GAMES:','  BLACK JACK','  GIN RUMMY','  FIGHTER COMBAT','  GUERRILLA ENGAGEMENT','  DESERT WARFARE','  AIR-TO-GROUND ACTIONS','  THEATERWIDE TACTICAL WARFARE','  GLOBAL THERMONUCLEAR WAR','', 'SHALL WE PLAY A GAME? (Y/N)'
+    ];
+    (async()=>{ for (const l of boot){ await new Promise(r=>setTimeout(r,120)); printLine(l);} })();
+
+    // ------- Three.js Globe -------
+    const container = document.getElementById('globe-section');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+    renderer.setClearColor(0x000000, 1);
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+    container.appendChild(renderer.domElement);
+
+    const radius = 2;
+    const sphereGeo = new THREE.SphereGeometry(radius, 48, 32);
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0x3cff8f, wireframe:true, transparent:true, opacity:0.85 });
+    const globe = new THREE.Mesh(sphereGeo, wireMat); scene.add(globe);
+
+    // Subtle phosphor halo
+    const glowGeo = new THREE.SphereGeometry(radius*1.05, 32, 18);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0x3cff8f, transparent:true, opacity:0.08, wireframe:false });
+    const glow = new THREE.Mesh(glowGeo, glowMat); scene.add(glow);
+
+    camera.position.set(0, 0.7, 5);
+
+    function size(){ const r = container.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix(); }
+    new ResizeObserver(size).observe(container); window.addEventListener('resize', size); size();
+
+    // Optional coarse continents (as in your snippet)
+    function latLonToVector3(lat, lon, altitude=0){ const phi=(90-lat)*(Math.PI/180), theta=(lon+180)*(Math.PI/180); const rr=radius+altitude; return new THREE.Vector3(-rr*Math.sin(phi)*Math.cos(theta), rr*Math.cos(phi), rr*Math.sin(phi)*Math.sin(theta)); }
+    function drawContinent(coords){ const pts = coords.map(c=>latLonToVector3(c[0], c[1], 0.01)); pts.push(pts[0]); const geo = new THREE.BufferGeometry().setFromPoints(pts); const mat = new THREE.LineBasicMaterial({ color:0x3cff8f, transparent:true, opacity:0.4 }); const line = new THREE.Line(geo, mat); scene.add(line); }
+    drawContinent([[70,-100],[70,-60],[45,-50],[25,-80],[30,-115],[50,-125],[60,-140],[70,-100]]);
+    drawContinent([[70,30],[70,180],[50,180],[45,135],[50,40],[70,30]]);
+    drawContinent([[50,75],[50,135],[40,120],[20,110],[25,80],[40,75],[50,75]]);
+    drawContinent([[70,-10],[70,40],[50,50],[35,10],[40,-10],[70,-10]]);
+    drawContinent([[59,-3],[59,2],[50,2],[50,-6],[59,-3]]);
+
+    // Missiles (kept from your logic)
+    const missiles = [];
+    function createMissile(startLat, startLon, endLat, endLon){
+      const points=[]; const steps=100; for (let i=0;i<=steps;i++){ const t=i/steps; const lat=startLat + (endLat-startLat)*t; const lon=startLon + (endLon-startLon)*t; const height = Math.sin(t*Math.PI)*1.2; points.push(latLonToVector3(lat,lon,height)); }
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineBasicMaterial({ color:0xff4d4d, transparent:true, opacity:0 });
+      const line = new THREE.Line(geo, mat); scene.add(line);
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.04,8,8), new THREE.MeshBasicMaterial({color:0xff4d4d})); dot.visible=false; scene.add(dot);
+      return { line, dot, points, progress:0, speed:0.01 };
+    }
+
+    const countries = { 'USA':[40,-100], 'RUSSIA':[60,100], 'CHINA':[35,105], 'UK':[51,0], 'FRANCE':[46,2], 'GERMANY':[51,10], 'INDIA':[20,77], 'JAPAN':[36,138], 'CANADA':[56,-106], 'AUSTRALIA':[-25,133] };
+
+    // ------- Commands -------
+    let defconLevel=5, trackCount=0, gameStarted=false;
+    function processCommand(cmd){
+      const parts = cmd.toUpperCase().split(' '); const command = parts[0];
+      lastInput.textContent = cmd.toUpperCase(); printLine('> ' + cmd);
+      if (command==='Y' || command==='YES'){ if(!gameStarted){ gameStarted=true; printLine(''); printLine('EXCELLENT. A STRANGE GAME.'); printLine(''); printLine('AVAILABLE COMMANDS:'); printLine('  LAUNCH [SOURCE] [TARGET]'); printLine('  LIST | STATUS | DEFCON [1-5] | HELP'); printLine(''); printLine('EXAMPLE: LAUNCH RUSSIA USA'); } else { printLine('GAME ALREADY IN PROGRESS'); } }
+      else if (command==='N' || command==='NO'){ printLine('A WISE DECISION. THE ONLY WINNING MOVE IS NOT TO PLAY.'); }
+      else if (command==='LAUNCH'){
+        if(!gameStarted){ printLine('ERROR: START GAME FIRST (Y/N)', 'error'); return; }
+        const source=parts[1], target=parts[2]; if(!source||!target){ printLine('SYNTAX: LAUNCH [SOURCE] [TARGET]', 'error'); return; }
+        if(!countries[source]){ printLine('ERROR: UNKNOWN SOURCE - ' + source, 'error'); return; }
+        if(!countries[target]){ printLine('ERROR: UNKNOWN TARGET - ' + target, 'error'); return; }
+        const [slat,slon]=countries[source], [elat,elon]=countries[target]; const m=createMissile(slat,slon,elat,elon); missiles.push(m); trackCount++; trackCountDisplay.textContent=trackCount; printLine(`ICBM LAUNCH: ${source} → ${target}`, 'warning'); printLine('TRACK ID: ' + String(trackCount).padStart(4,'0')); if(defconLevel>1){ defconLevel=Math.max(1,defconLevel-1); defconDisplay.textContent=defconLevel; printLine('DEFCON LEVEL: '+defconLevel, 'warning'); }
+      }
+      else if (command==='LIST'){ printLine(''); printLine('AVAILABLE TARGETS:'); Object.keys(countries).forEach(c=>printLine('  '+c)); printLine(''); }
+      else if (command==='STATUS'){ printLine(''); printLine('SYSTEM STATUS:'); printLine('  DEFCON LEVEL: '+defconLevel); printLine('  ACTIVE TRACKS: '+trackCount); printLine('  GAME STATUS: ' + (gameStarted?'ACTIVE':'STANDBY')); printLine(''); }
+      else if (command==='DEFCON'){ const lvl=parseInt(parts[1]); if(lvl>=1 && lvl<=5){ defconLevel=lvl; defconDisplay.textContent=defconLevel; printLine('DEFCON LEVEL SET TO: '+lvl);} else { printLine('ERROR: DEFCON LEVEL MUST BE 1-5','error'); } }
+      else if (command==='HELP'){ printLine(''); printLine('AVAILABLE COMMANDS:'); printLine('  Y/YES, N/NO, LAUNCH [SOURCE] [TARGET], LIST, STATUS, DEFCON [1-5], CLEAR'); printLine(''); }
+      else if (command==='CLEAR'){ term.innerHTML=''; }
+      else { printLine('UNKNOWN COMMAND: '+command, 'error'); printLine('TYPE HELP FOR AVAILABLE COMMANDS'); }
+      printLine('');
+    }
+
+    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const v=input.value.trim(); if(v){ processCommand(v); input.value=''; } } });
+
+    // ------- Animate -------
+    function animate(){ requestAnimationFrame(animate); globe.rotation.y += 0.002; missiles.forEach(m=>{ if(m.progress<1){ m.progress += m.speed; const fade = Math.min(m.progress*3,1); m.line.material.opacity = 0.9*fade; const idx=Math.floor(m.progress*(m.points.length-1)); if(idx<m.points.length){ m.dot.position.copy(m.points[idx]); m.dot.visible=true; } } else { m.dot.visible=false; } }); renderer.render(scene,camera); }
+    animate();
+
+    // ensure focus
+    input.focus();
+  })();
   </script>
 </body>
 </html>
