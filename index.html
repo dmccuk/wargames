@@ -137,6 +137,13 @@
         if (term){ const d = document.createElement('div'); d.style.color='#ff4d4d'; d.textContent = '[ERROR] ' + (err && err.message ? err.message : err); term.appendChild(d); }
       }catch(_){}
     }
+    window.onerror = function(msg, src, line, col, err){ showFatal(err || msg); };
+
+    try{
+        const term = document.getElementById('term-output');
+        if (term){ const d = document.createElement('div'); d.style.color='#ff4d4d'; d.textContent = '[ERROR] ' + (err && err.message ? err.message : err); term.appendChild(d); }
+      }catch(_){}
+    }
 
     try{
       // ---------- Terminal (independent of globe engine) ----------
@@ -203,7 +210,7 @@
       const ghost = document.getElementById('ghost-input');
 
       function focusTerminal(){ terminalActive = true; try{ ghost.focus({preventScroll:true}); }catch{ ghost.focus(); } }
-      window.addEventListener('load', ()=>{ setTimeout(()=>{ focusTerminal(); boot(); }, 0); });
+      document.addEventListener('DOMContentLoaded', ()=>{ focusTerminal(); boot(); });
       termEl.addEventListener('mousedown', focusTerminal);
       termEl.addEventListener('touchstart', focusTerminal);
       termEl.addEventListener('focus', focusTerminal);
@@ -248,15 +255,15 @@
       }
 
       // Try webgl -> fallback to canvas
+      // Start with Canvas fallback immediately so we always render something.
+      initCanvasFallback();
+      // Try to live-upgrade to Three.js if available.
       (async function(){
         try{
           const THREE = await import('https://unpkg.com/three@0.159.0/build/three.module.js');
           const { OrbitControls } = await import('https://unpkg.com/three@0.159.0/examples/jsm/controls/OrbitControls.js');
           initThree(THREE, OrbitControls);
-        }catch(err){
-          console.warn('Three.js unavailable, using Canvas fallback', err);
-          initCanvasFallback();
-        }
+        }catch(err){ console.warn('Three.js unavailable; staying on Canvas fallback', err); }
       })();
 
       function initThree(THREE, OrbitControls){
