@@ -130,203 +130,179 @@
 
   <!-- Three.js for the 3D globe (modern), styled to look retro -->
   <script type="module">
-    // ---------- Terminal (runs regardless of globe engine) ----------
-    const termOut = document.getElementById('term-output');
-    const typing = document.getElementById('typing');
-    const lastInput = document.getElementById('last-input');
-    const cursor = document.getElementById('cursor');
-
-    let inputBuffer = '';
-    let history = [];
-    let historyIndex = -1;
-    let terminalActive = false;
-
-    const bootLines = [
-      'LOGON: JOSHUA',
-      'PASSWORD: ••••••••',
-      'IDENTIFICATION NOT RECOGNIZED',
-      'OVERRIDE: LIST GAMES',
-      '',
-      'GAMES:',
-      '  BLACK JACK',
-      '  GIN RUMMY',
-      '  FIGHTER COMBAT',
-      '  GUERRILLA ENGAGEMENT',
-      '  DESERT WARFARE',
-      '  AIR-TO-GROUND ACTIONS',
-      '  THEATERWIDE TACTICAL WARFARE',
-      '  GLOBAL THERMONUCLEAR WAR',
-      '',
-      'SHALL WE PLAY A GAME? (Y/N)'
-    ];
-
-    function printLine(line=""){ const div = document.createElement('div'); div.textContent=line; termOut.appendChild(div); termOut.scrollTop = termOut.scrollHeight; }
-    function typeToPrompt(str){ typing.textContent = str; }
-    function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
-
-    async function boot(){ for (const l of bootLines){ await wait(200); printLine(l); } }
-
-    function handleCommand(cmd){
-      const u = cmd.trim(); const U = u.toUpperCase();
-      lastInput.textContent = u || '—';
-      printLine('> ' + u);
-      if (!U) return;
-      if (U === 'HELP'){
-        printLine('COMMANDS: HELP, DEFCON, LIST, RUN <GAME>, CLEAR, STATUS');
-      } else if (U === 'LIST'){
-        for (const l of bootLines.slice(5, bootLines.length-1)) printLine(l);
-      } else if (U.startsWith('RUN ')){
-        const game = U.slice(4);
-        if (game.includes('THERMONUCLEAR')){ printLine('LAUNCHING: GLOBAL THERMONUCLEAR WAR…'); triggerStrikeDemo(); }
-        else { printLine('SIMULATION: ' + game + ' (NOT INSTALLED)'); }
-      } else if (U === 'DEFCON'){
-        printLine('CURRENT DEFCON: 3');
-      } else if (U === 'STATUS'){
-        printLine('WOPR STATUS: IDLE; STRATEGY MODEL: ACTIVE;');
-      } else if (U === 'CLEAR'){
-        termOut.innerHTML = '';
-      } else {
-        printLine('UNKNOWN COMMAND. TYPE HELP');
-      }
-    }
-
-    // Hidden input + document-level fallback so typing works in strict embeds
-    const termEl = document.getElementById('terminal');
-    const ghost = document.getElementById('ghost-input');
-
-    function focusTerminal(){ terminalActive = true; ghost.focus({preventScroll:true}); }
-    window.addEventListener('load', ()=>{ setTimeout(()=>{ focusTerminal(); boot(); }, 0); });
-
-    termEl.addEventListener('mousedown', focusTerminal);
-    termEl.addEventListener('touchstart', focusTerminal);
-    termEl.addEventListener('focus', focusTerminal);
-
-    ghost.addEventListener('input', ()=>{ inputBuffer = ghost.value; typeToPrompt(inputBuffer); });
-    ghost.addEventListener('keydown', (e)=>{
-      if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); }
-      if (e.key === 'ArrowUp'){ if (history.length){ historyIndex = Math.min(historyIndex+1, history.length-1); inputBuffer = history[historyIndex]; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); }
-      if (e.key === 'ArrowDown'){ if (history.length){ historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); }
-    });
-
-    document.addEventListener('keydown', (e)=>{
-      const tag = document.activeElement?.tagName || '';
-      if (!terminalActive || ['INPUT','TEXTAREA'].includes(tag)) return;
-      if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); return; }
-      if (e.key === 'Backspace'){ inputBuffer = inputBuffer.slice(0,-1); ghost.value=inputBuffer; typeToPrompt(inputBuffer); e.preventDefault(); return; }
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown'){
-        if (history.length){ if (e.key === 'ArrowUp') historyIndex = Math.min(historyIndex+1, history.length-1); else historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); return; }
-      if (e.key.length === 1 && !e.metaKey && !e.ctrlKey){ inputBuffer += e.key; ghost.value=inputBuffer; typeToPrompt(inputBuffer); e.preventDefault(); }
-    });
-
-    // ---------- Globe engine selection ----------
-    const wrap = document.getElementById('globe');
-    const tracksCount = document.getElementById('tracks-count');
-
-    let addTrack = ()=>{}; // will be assigned by the active engine
-    function triggerStrikeDemo(){
-      const cities = [
-        { name:'SEATTLE', lat:47.6062, lon:-122.3321 },
-        { name:'SAN FRANCISCO', lat:37.7749, lon:-122.4194 },
-        { name:'NEW YORK', lat:40.7128, lon:-74.0060 },
-        { name:'LONDON', lat:51.5074, lon:-0.1278 },
-        { name:'PARIS', lat:48.8566, lon:2.3522 },
-        { name:'MOSCOW', lat:55.7558, lon:37.6173 },
-        { name:'BEIJING', lat:39.9042, lon:116.4074 },
-        { name:'TOKYO', lat:35.6762, lon:139.6503 }
-      ];
-      for (let i=0;i<6;i++){
-        const a = cities[Math.floor(Math.random()*cities.length)];
-        const b = cities[Math.floor(Math.random()*cities.length)];
-        if (a===b) continue; addTrack(a,b, 6000+Math.random()*4000);
-      }
-    }
-
-    (async function(){
+    // Fail-safe logger to show errors in the terminal
+    function showFatal(err){
       try{
-        const threeMod = await import('https://unpkg.com/three@0.159.0/build/three.module.js');
-        const { OrbitControls } = await import('https://unpkg.com/three@0.159.0/examples/jsm/controls/OrbitControls.js');
-        initThree(threeMod, OrbitControls);
-      }catch(err){ console.warn('Three.js unavailable, using Canvas fallback', err); initCanvasFallback(); }
-    })();
-
-    function initThree(THREE, OrbitControls){
-      const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true }); wrap.innerHTML=''; wrap.appendChild(renderer.domElement);
-      const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000); camera.position.set(0,0,350);
-      const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping=true; controls.enablePan=false; controls.minDistance=200; controls.maxDistance=600;
-      const R = 160;
-      const glowTex = new THREE.Texture(generateGlowCanvas()); glowTex.needsUpdate=true; const glowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0x3cff8f, transparent:true, opacity:0.45, depthWrite:false }); const glow = new THREE.Sprite(glowMat); glow.scale.set(900,900,1); scene.add(glow);
-      const globeGeo = new THREE.SphereGeometry(R, 32, 18); const globeMat = new THREE.MeshBasicMaterial({ color: 0x3cff8f, wireframe:true, transparent:true, opacity:0.85 }); const globe = new THREE.Mesh(globeGeo, globeMat); scene.add(globe);
-      const rings = new THREE.Group(); for (let lat=-60; lat<=60; lat+=30){ rings.add(makeLatitudeRingThree(THREE,R+0.1, lat)); } for (let lon=0; lon<180; lon+=20){ rings.add(makeLongitudeRingThree(THREE,R+0.1, lon)); } scene.add(rings);
-      const stars = new THREE.Group(); for (let i=0;i<200;i++){ const s = new THREE.Sprite(new THREE.SpriteMaterial({ color:0x3cff8f, opacity: Math.random()*0.4+0.1 })); const d=1200; s.position.set((Math.random()-0.5)*d,(Math.random()-0.5)*d,(Math.random()-0.5)*d); const sc=Math.random()*3+1; s.scale.set(sc,sc,1); stars.add(s);} scene.add(stars);
-      function onResize(){ const rect = wrap.getBoundingClientRect(); renderer.setSize(rect.width, rect.height, false); camera.aspect=rect.width/rect.height; camera.updateProjectionMatrix(); } new ResizeObserver(onResize).observe(wrap); window.addEventListener('resize', onResize); setTimeout(onResize,0);
-      const missileTracks = new Set();
-      addTrack = function(from,to,duration=6000){ const curve = arcCurveThree(THREE, from.lat, from.lon, to.lat, to.lon, R*0.8); const points = curve.getPoints(200); const geo = new THREE.BufferGeometry().setFromPoints(points); const mat = new THREE.LineBasicMaterial({ color: 0x3cff8f, transparent:true, opacity:0.9 }); const line = new THREE.Line(geo, mat); line.userData = { max: points.length, start: performance.now(), dur: duration }; geo.setDrawRange(0,0); scene.add(line); missileTracks.add(line); tracksCount.textContent = missileTracks.size; const impact = makeImpactThree(THREE); const end = points[points.length-1]; impact.position.copy(end); impact.userData = { born: performance.now(), life: 900 }; scene.add(impact); return line; };
-      function animate(now){ requestAnimationFrame(animate); controls.update(); globe.rotation.y += 0.0003; rings.rotation.y += 0.0003; for (const line of missileTracks){ const geo=line.geometry; const u=line.userData; const elapsed= now - u.start; const frac=Math.min(1, elapsed/u.dur); const segs=Math.floor(u.max*frac); geo.setDrawRange(0,segs); if (frac>=1){ line.material.opacity *= 0.985; if (line.material.opacity<0.05){ scene.remove(line); missileTracks.delete(line); tracksCount.textContent = missileTracks.size; } } } scene.traverse(obj=>{ if (obj.type==='Sprite' && obj.userData && obj.userData.life){ const age=now-obj.userData.born; const f=Math.max(0,1-age/obj.userData.life); obj.scale.setScalar(20+(1-f)*40); obj.material.opacity=f*0.9; if (age>obj.userData.life) scene.remove(obj); } }); renderer.render(scene,camera); } animate(); setInterval(()=>triggerStrikeDemo(), 9000);
-      function latLonToVec3(lat, lon, radius){ const phi=(90-lat)*(Math.PI/180); const theta=(lon+180)*(Math.PI/180); const x = -radius*Math.sin(phi)*Math.cos(theta); const z = radius*Math.sin(phi)*Math.sin(theta); const y = radius*Math.cos(phi); return new THREE.Vector3(x,y,z); }
-      function arcCurveThree(THREE, lat1,lon1,lat2,lon2,height){ const R=160; const start=latLonToVec3(lat1,lon1,R); const end=latLonToVec3(lat2,lon2,R); const mid=start.clone().add(end).multiplyScalar(0.5); const midLen=mid.length(); mid.normalize(); mid.multiplyScalar(midLen+height); return new THREE.QuadraticBezierCurve3(start,mid,end); }
-      function makeLatitudeRingThree(THREE, radius, lat){ const pts=[]; for (let lon=-180; lon<=180; lon+=2){ pts.push(latLonToVec3(lat,lon,radius)); } const geo=new THREE.BufferGeometry().setFromPoints(pts); const mat=new THREE.LineDashedMaterial({ color:0x3cff8f, dashSize:3, gapSize:2 }); const line=new THREE.Line(geo,mat); line.computeLineDistances(); return line; }
-      function makeLongitudeRingThree(THREE, radius, lon){ const pts=[]; for (let lat=-90; lat<=90; lat+=2){ pts.push(latLonToVec3(lat,lon,radius)); } const geo=new THREE.BufferGeometry().setFromPoints(pts); const mat=new THREE.LineDashedMaterial({ color:0x3cff8f, dashSize:3, gapSize:2, transparent:true, opacity:0.8 }); const line=new THREE.Line(geo,mat); line.computeLineDistances(); return line; }
-      function makeImpactThree(THREE){ const tex=new THREE.Texture(generateImpactCanvas()); tex.needsUpdate=true; const mat=new THREE.SpriteMaterial({ map:tex, color:0x3cff8f, transparent:true, blending: THREE.AdditiveBlending, opacity:0.8, depthWrite:false }); const s=new THREE.Sprite(mat); s.scale.set(20,20,1); return s; }
+        const term = document.getElementById('term-output');
+        if (term){ const d = document.createElement('div'); d.style.color='#ff4d4d'; d.textContent = '[ERROR] ' + (err && err.message ? err.message : err); term.appendChild(d); }
+      }catch(_){}
     }
 
-    function initCanvasFallback(){ const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d'); wrap.innerHTML=''; wrap.appendChild(canvas); function onResize(){ const r=wrap.getBoundingClientRect(); canvas.width=r.width; canvas.height=r.height; } new ResizeObserver(onResize).observe(wrap); window.addEventListener('resize', onResize); setTimeout(onResize,0); const R=160; let rot=0; const tracks=[]; addTrack=function(from,to,duration=6000){ const start=Date.now(); tracks.push({from,to,start,duration,done:false}); tracksCount.textContent=tracks.filter(t=>!t.done).length; }; function proj(x,y,z){ const scale=300/(300+z); return {x: canvas.width/2 + x*scale, y: canvas.height/2 + y*scale}; } function rotY(x,z,a){ const ca=Math.cos(a), sa=Math.sin(a); return {x: x*ca - z*sa, z: x*sa + z*ca}; } function latLonToXYZ(lat,lon,rad){ const phi=(90-lat)*(Math.PI/180); const theta=(lon+180)*(Math.PI/180); const x = -rad*Math.sin(phi)*Math.cos(theta); const z = rad*Math.sin(phi)*Math.sin(theta); const y = rad*Math.cos(phi); return {x,y,z}; } function drawGraticule(){
-      ctx.globalAlpha=0.9; ctx.lineWidth=1;
-      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--phosphor') || '#3cff8f';
-      // helper to draw a polyline only on the FRONT hemisphere (z>0), splitting at the silhouette
-      function strokeFront(points){
-        ctx.beginPath();
-        let penDown = false;
-        for (let i=0;i<points.length;i++){
-          const p = points[i];
-          // rotate about Y then project
-          const r = rotY(p.x,p.z,rot);
-          const zc = r.z; // camera-space z
-          if (zc <= 0){ penDown = false; continue; } // back side: lift pen
-          const s = proj(r.x, p.y, zc);
-          if (!penDown){ ctx.moveTo(s.x,s.y); penDown = true; }
-          else { ctx.lineTo(s.x,s.y); }
-        }
-        ctx.stroke();
-      }
-      // latitudes
-      for (let lat=-60; lat<=60; lat+=30){
-        const pts=[]; for (let lon=-180; lon<=180; lon+=2){ pts.push(latLonToXYZ(lat,lon,R)); }
-        strokeFront(pts);
-      }
-      // longitudes
-      for (let lon=0; lon<180; lon+=20){
-        const pts=[]; for (let lat=-90; lat<=90; lat+=2){ pts.push(latLonToXYZ(lat,lon,R)); }
-        strokeFront(pts);
-      }
-    } ctx.stroke(); } for (let lon=0; lon<180; lon+=20){ ctx.beginPath(); for (let lat=-90; lat<=90; lat+=2){ const p=latLonToXYZ(lat,lon,R); const r=rotY(p.x,p.z,rot); const s=proj(r.x,p.y,r.z); if (lat===-90) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y); } ctx.stroke(); } } function drawTracks(){
-      const now = Date.now();
-      ctx.lineWidth=2; ctx.globalAlpha=0.9; ctx.strokeStyle = '#3cff8f';
-      tracks.forEach(t=>{
-        const p1=latLonToXYZ(t.from.lat,t.from.lon,R);
-        const p2=latLonToXYZ(t.to.lat,t.to.lon,R);
-        const mid={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2 + R*0.5, z:(p1.z+p2.z)/2};
-        const steps=160; const elapsed=Math.min(1,(now-t.start)/t.duration); const endIdx=Math.floor(steps*elapsed);
-        let penDown=false; ctx.beginPath();
-        for (let i=0;i<=endIdx;i++){
-          const a=i/steps;
-          const xa=(1-a)*(1-a)*p1.x + 2*(1-a)*a*mid.x + a*a*p2.x;
-          const ya=(1-a)*(1-a)*p1.y + 2*(1-a)*a*mid.y + a*a*p2.y;
-          const za=(1-a)*(1-a)*p1.z + 2*(1-a)*a*mid.z + a*a*p2.z;
-          const r=rotY(xa,za,rot);
-          const zc=r.z;
-          if (zc <= 0){ penDown=false; continue; }
-          const s=proj(r.x,ya,zc);
-          if (!penDown){ ctx.moveTo(s.x,s.y); penDown=true; }
-          else ctx.lineTo(s.x,s.y);
-        }
-        ctx.stroke();
-        if (elapsed>=1) t.done=true;
-      });
-      tracksCount.textContent = tracks.filter(t=>!t.done).length;
-    }; const steps=120; const elapsed=Math.min(1,(now-t.start)/t.duration); const endIdx=Math.floor(steps*elapsed); ctx.beginPath(); for (let i=0;i<=endIdx;i++){ const a=i/steps; const xa=(1-a)*(1-a)*p1.x + 2*(1-a)*a*mid.x + a*a*p2.x; const ya=(1-a)*(1-a)*p1.y + 2*(1-a)*a*mid.y + a*a*p2.y; const za=(1-a)*(1-a)*p1.z + 2*(1-a)*a*mid.z + a*a*p2.z; const r=rotY(xa,za,rot); const s=proj(r.x,ya,r.z); if (i===0) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y); } ctx.stroke(); if (elapsed>=1){ t.done=true; } }); tracksCount.textContent = tracks.filter(t=>!t.done).length; } function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); rot += 0.003; drawGraticule(); drawTracks(); requestAnimationFrame(draw); } draw(); setInterval(()=> triggerStrikeDemo(), 9000); }
+    try{
+      // ---------- Terminal (independent of globe engine) ----------
+      const termOut = document.getElementById('term-output');
+      const typing = document.getElementById('typing');
+      const lastInput = document.getElementById('last-input');
+      const cursor = document.getElementById('cursor');
 
-    function generateGlowCanvas(){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); const grd=g.createRadialGradient(128,128,10,128,128,128); grd.addColorStop(0,'rgba(60,255,143,0.55)'); grd.addColorStop(1,'rgba(60,255,143,0)'); g.fillStyle=grd; g.fillRect(0,0,256,256); return c; }
-    function generateImpactCanvas(){ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); g.clearRect(0,0,128,128); const grd=g.createRadialGradient(64,64,2,64,64,64); grd.addColorStop(0,'rgba(60,255,143,0.9)'); grd.addColorStop(0.5,'rgba(60,255,143,0.35)'); grd.addColorStop(1,'rgba(60,255,143,0)'); g.fillStyle=grd; g.beginPath(); g.arc(64,64,64,0,Math.PI*2); g.fill(); return c; }
+      let inputBuffer = '';
+      let history = [];
+      let historyIndex = -1;
+      let terminalActive = false;
+
+      const bootLines = [
+        'LOGON: JOSHUA',
+        'PASSWORD: ••••••••',
+        'IDENTIFICATION NOT RECOGNIZED',
+        'OVERRIDE: LIST GAMES',
+        '',
+        'GAMES:',
+        '  BLACK JACK',
+        '  GIN RUMMY',
+        '  FIGHTER COMBAT',
+        '  GUERRILLA ENGAGEMENT',
+        '  DESERT WARFARE',
+        '  AIR-TO-GROUND ACTIONS',
+        '  THEATERWIDE TACTICAL WARFARE',
+        '  GLOBAL THERMONUCLEAR WAR',
+        '',
+        'SHALL WE PLAY A GAME? (Y/N)'
+      ];
+
+      function printLine(line=''){ const div = document.createElement('div'); div.textContent=line; termOut.appendChild(div); termOut.scrollTop = termOut.scrollHeight; }
+      function typeToPrompt(str){ typing.textContent = str; }
+      function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+      async function boot(){ for (const l of bootLines){ await wait(200); printLine(l); } }
+
+      function handleCommand(cmd){
+        const u = cmd.trim(); const U = u.toUpperCase();
+        lastInput.textContent = u || '—';
+        printLine('> ' + u);
+        if (!U) return;
+        if (U === 'HELP'){
+          printLine('COMMANDS: HELP, DEFCON, LIST, RUN <GAME>, CLEAR, STATUS');
+        } else if (U === 'LIST'){
+          for (const l of bootLines.slice(5, bootLines.length-1)) printLine(l);
+        } else if (U.startsWith('RUN ')){
+          const game = U.slice(4);
+          if (game.includes('THERMONUCLEAR')){ printLine('LAUNCHING: GLOBAL THERMONUCLEAR WAR…'); triggerStrikeDemo(); }
+          else { printLine('SIMULATION: ' + game + ' (NOT INSTALLED)'); }
+        } else if (U === 'DEFCON'){
+          printLine('CURRENT DEFCON: 3');
+        } else if (U === 'STATUS'){
+          printLine('WOPR STATUS: IDLE; STRATEGY MODEL: ACTIVE;');
+        } else if (U === 'CLEAR'){
+          termOut.innerHTML = '';
+        } else {
+          printLine('UNKNOWN COMMAND. TYPE HELP');
+        }
+      }
+
+      const termEl = document.getElementById('terminal');
+      const ghost = document.getElementById('ghost-input');
+
+      function focusTerminal(){ terminalActive = true; try{ ghost.focus({preventScroll:true}); }catch{ ghost.focus(); } }
+      window.addEventListener('load', ()=>{ setTimeout(()=>{ focusTerminal(); boot(); }, 0); });
+      termEl.addEventListener('mousedown', focusTerminal);
+      termEl.addEventListener('touchstart', focusTerminal);
+      termEl.addEventListener('focus', focusTerminal);
+
+      ghost.addEventListener('input', ()=>{ inputBuffer = ghost.value; typeToPrompt(inputBuffer); });
+      ghost.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); }
+        if (e.key === 'ArrowUp'){ if (history.length){ historyIndex = Math.min(historyIndex+1, history.length-1); inputBuffer = history[historyIndex]; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); }
+        if (e.key === 'ArrowDown'){ if (history.length){ historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); }
+      });
+
+      document.addEventListener('keydown', (e)=>{
+        const tag = document.activeElement?.tagName || '';
+        if (!terminalActive || ['INPUT','TEXTAREA'].includes(tag)) return;
+        if (e.key === 'Enter'){ history.unshift(inputBuffer); historyIndex=-1; handleCommand(inputBuffer); inputBuffer=''; ghost.value=''; typeToPrompt(''); e.preventDefault(); return; }
+        if (e.key === 'Backspace'){ inputBuffer = inputBuffer.slice(0,-1); ghost.value=inputBuffer; typeToPrompt(inputBuffer); e.preventDefault(); return; }
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown'){
+          if (history.length){ if (e.key === 'ArrowUp') historyIndex = Math.min(historyIndex+1, history.length-1); else historyIndex = Math.max(historyIndex-1,-1); inputBuffer = historyIndex>=0? history[historyIndex] : ''; ghost.value=inputBuffer; typeToPrompt(inputBuffer);} e.preventDefault(); return; }
+        if (e.key.length === 1 && !e.metaKey && !e.ctrlKey){ inputBuffer += e.key; ghost.value=inputBuffer; typeToPrompt(inputBuffer); e.preventDefault(); }
+      });
+
+      // ---------- Globe selection (Three.js or Canvas fallback) ----------
+      const wrap = document.getElementById('globe');
+      const tracksCount = document.getElementById('tracks-count');
+      let addTrack = ()=>{};
+      function triggerStrikeDemo(){
+        const cities = [
+          { name:'SEATTLE', lat:47.6062, lon:-122.3321 },
+          { name:'SAN FRANCISCO', lat:37.7749, lon:-122.4194 },
+          { name:'NEW YORK', lat:40.7128, lon:-74.0060 },
+          { name:'LONDON', lat:51.5074, lon:-0.1278 },
+          { name:'PARIS', lat:48.8566, lon:2.3522 },
+          { name:'MOSCOW', lat:55.7558, lon:37.6173 },
+          { name:'BEIJING', lat:39.9042, lon:116.4074 },
+          { name:'TOKYO', lat:35.6762, lon:139.6503 }
+        ];
+        for (let i=0;i<6;i++){
+          const a = cities[Math.floor(Math.random()*cities.length)];
+          const b = cities[Math.floor(Math.random()*cities.length)];
+          if (a===b) continue; addTrack(a,b, 6000+Math.random()*4000);
+        }
+      }
+
+      // Try webgl -> fallback to canvas
+      (async function(){
+        try{
+          const THREE = await import('https://unpkg.com/three@0.159.0/build/three.module.js');
+          const { OrbitControls } = await import('https://unpkg.com/three@0.159.0/examples/jsm/controls/OrbitControls.js');
+          initThree(THREE, OrbitControls);
+        }catch(err){
+          console.warn('Three.js unavailable, using Canvas fallback', err);
+          initCanvasFallback();
+        }
+      })();
+
+      function initThree(THREE, OrbitControls){
+        const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true }); wrap.innerHTML=''; wrap.appendChild(renderer.domElement);
+        const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000); camera.position.set(0,0,350);
+        const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping=true; controls.enablePan=false; controls.minDistance=200; controls.maxDistance=600;
+        const R = 160;
+        const glowTex = new THREE.Texture(generateGlowCanvas()); glowTex.needsUpdate=true; const glowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0x3cff8f, transparent:true, opacity:0.45, depthWrite:false }); const glow = new THREE.Sprite(glowMat); glow.scale.set(900,900,1); scene.add(glow);
+        const globeGeo = new THREE.SphereGeometry(R, 32, 18); const globeMat = new THREE.MeshBasicMaterial({ color: 0x3cff8f, wireframe:true, transparent:true, opacity:0.85 }); const globe = new THREE.Mesh(globeGeo, globeMat); scene.add(globe);
+        const rings = new THREE.Group(); for (let lat=-60; lat<=60; lat+=30){ rings.add(makeLatitudeRingThree(THREE,R+0.1, lat)); } for (let lon=0; lon<180; lon+=20){ rings.add(makeLongitudeRingThree(THREE,R+0.1, lon)); } scene.add(rings);
+        const stars = new THREE.Group(); for (let i=0;i<200;i++){ const s = new THREE.Sprite(new THREE.SpriteMaterial({ color:0x3cff8f, opacity: Math.random()*0.4+0.1 })); const d=1200; s.position.set((Math.random()-0.5)*d,(Math.random()-0.5)*d,(Math.random()-0.5)*d); const sc=Math.random()*3+1; s.scale.set(sc,sc,1); stars.add(s);} scene.add(stars);
+        function onResize(){ const rect = wrap.getBoundingClientRect(); renderer.setSize(rect.width, rect.height, false); camera.aspect=rect.width/rect.height; camera.updateProjectionMatrix(); }
+        new ResizeObserver(onResize).observe(wrap); window.addEventListener('resize', onResize); setTimeout(onResize,0);
+        const missileTracks = new Set();
+        addTrack = function(from,to,duration=6000){ const curve = arcCurveThree(THREE, from.lat, from.lon, to.lat, to.lon, R*0.8); const points = curve.getPoints(200); const geo = new THREE.BufferGeometry().setFromPoints(points); const mat = new THREE.LineBasicMaterial({ color: 0x3cff8f, transparent:true, opacity:0.9 }); const line = new THREE.Line(geo, mat); line.userData = { max: points.length, start: performance.now(), dur: duration }; geo.setDrawRange(0,0); scene.add(line); missileTracks.add(line); tracksCount.textContent = missileTracks.size; const impact = makeImpactThree(THREE); const end = points[points.length-1]; impact.position.copy(end); impact.userData = { born: performance.now(), life: 900 }; scene.add(impact); return line; };
+        function animate(now){ requestAnimationFrame(animate); controls.update(); globe.rotation.y += 0.0003; rings.rotation.y += 0.0003; for (const line of missileTracks){ const geo=line.geometry; const u=line.userData; const elapsed= now - u.start; const frac=Math.min(1, elapsed/u.dur); const segs=Math.floor(u.max*frac); geo.setDrawRange(0,segs); if (frac>=1){ line.material.opacity *= 0.985; if (line.material.opacity<0.05){ scene.remove(line); missileTracks.delete(line); tracksCount.textContent = missileTracks.size; } } } scene.traverse(obj=>{ if (obj.type==='Sprite' && obj.userData && obj.userData.life){ const age=now-obj.userData.born; const f=Math.max(0,1-age/obj.userData.life); obj.scale.setScalar(20+(1-f)*40); obj.material.opacity=f*0.9; if (age>obj.userData.life) scene.remove(obj); } }); renderer.render(scene,camera); } animate(); setInterval(()=>triggerStrikeDemo(), 9000);
+        function latLonToVec3(lat, lon, radius){ const phi=(90-lat)*(Math.PI/180); const theta=(lon+180)*(Math.PI/180); const x = -radius*Math.sin(phi)*Math.cos(theta); const z = radius*Math.sin(phi)*Math.sin(theta); const y = radius*Math.cos(phi); return new THREE.Vector3(x,y,z); }
+        function arcCurveThree(THREE, lat1,lon1,lat2,lon2,height){ const R=160; const start=latLonToVec3(lat1,lon1,R); const end=latLonToVec3(lat2,lon2,R); const mid=start.clone().add(end).multiplyScalar(0.5); const midLen=mid.length(); mid.normalize(); mid.multiplyScalar(midLen+height); return new THREE.QuadraticBezierCurve3(start,mid,end); }
+        function makeLatitudeRingThree(THREE, radius, lat){ const pts=[]; for (let lon=-180; lon<=180; lon+=2){ pts.push(latLonToVec3(lat,lon,radius)); } const geo=new THREE.BufferGeometry().setFromPoints(pts); const mat=new THREE.LineDashedMaterial({ color:0x3cff8f, dashSize:3, gapSize:2 }); const line=new THREE.Line(geo,mat); line.computeLineDistances(); return line; }
+        function makeLongitudeRingThree(THREE, radius, lon){ const pts=[]; for (let lat=-90; lat<=90; lat+=2){ pts.push(latLonToVec3(lat,lon,radius)); } const geo=new THREE.BufferGeometry().setFromPoints(pts); const mat=new THREE.LineDashedMaterial({ color:0x3cff8f, dashSize:3, gapSize:2, transparent:true, opacity:0.8 }); const line=new THREE.Line(geo,mat); line.computeLineDistances(); return line; }
+        function makeImpactThree(THREE){ const tex=new THREE.Texture(generateImpactCanvas()); tex.needsUpdate=true; const mat=new THREE.SpriteMaterial({ map:tex, color:0x3cff8f, transparent:true, blending: THREE.AdditiveBlending, opacity:0.8, depthWrite:false }); const s=new THREE.Sprite(mat); s.scale.set(20,20,1); return s; }
+      }
+
+      function initCanvasFallback(){
+        const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d'); wrap.innerHTML=''; wrap.appendChild(canvas);
+        function onResize(){ const r=wrap.getBoundingClientRect(); canvas.width=Math.max(1, r.width); canvas.height=Math.max(1, r.height); }
+        new ResizeObserver(onResize).observe(wrap); window.addEventListener('resize', onResize); setTimeout(onResize,0);
+        const R=160; let rot=0; const tracks=[];
+        addTrack=function(from,to,duration=6000){ const start=Date.now(); tracks.push({from,to,start,duration,done:false}); tracksCount.textContent=tracks.filter(t=>!t.done).length; };
+        function proj(x,y,z){ const scale = 300/(300+z); return {x: canvas.width/2 + x*scale, y: canvas.height/2 + y*scale}; }
+        function rotY(x,z,a){ const ca=Math.cos(a), sa=Math.sin(a); return {x: x*ca - z*sa, z: x*sa + z*ca}; }
+        function latLonToXYZ(lat,lon,rad){ const phi=(90-lat)*(Math.PI/180); const theta=(lon+180)*(Math.PI/180); const x = -rad*Math.sin(phi)*Math.cos(theta); const z = rad*Math.sin(phi)*Math.sin(theta); const y = rad*Math.cos(phi); return {x,y,z}; }
+        function drawGraticule(){
+          ctx.globalAlpha=0.9; ctx.lineWidth=1; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--phosphor') || '#3cff8f';
+          function strokeFront(points){ ctx.beginPath(); let penDown=false; for (let i=0;i<points.length;i++){ const p=points[i]; const r=rotY(p.x,p.z,rot); const zc=r.z; if (zc<=0){ penDown=false; continue; } const s=proj(r.x,p.y,zc); if(!penDown){ ctx.moveTo(s.x,s.y); penDown=true; } else { ctx.lineTo(s.x,s.y); } } ctx.stroke(); }
+          for (let lat=-60; lat<=60; lat+=30){ const pts=[]; for (let lon=-180; lon<=180; lon+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
+          for (let lon=0; lon<180; lon+=20){ const pts=[]; for (let lat=-90; lat<=90; lat+=2){ pts.push(latLonToXYZ(lat,lon,R)); } strokeFront(pts); }
+        }
+        function drawTracks(){ const now=Date.now(); ctx.lineWidth=2; ctx.globalAlpha=0.9; ctx.strokeStyle='#3cff8f'; tracks.forEach(t=>{ const p1=latLonToXYZ(t.from.lat,t.from.lon,R); const p2=latLonToXYZ(t.to.lat,t.to.lon,R); const mid={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2 + R*0.5, z:(p1.z+p2.z)/2}; const steps=160; const elapsed=Math.min(1,(now-t.start)/t.duration); const endIdx=Math.floor(steps*elapsed); let penDown=false; ctx.beginPath(); for (let i=0;i<=endIdx;i++){ const a=i/steps; const xa=(1-a)*(1-a)*p1.x + 2*(1-a)*a*mid.x + a*a*p2.x; const ya=(1-a)*(1-a)*p1.y + 2*(1-a)*a*mid.y + a*a*p2.y; const za=(1-a)*(1-a)*p1.z + 2*(1-a)*a*mid.z + a*a*p2.z; const r=rotY(xa,za,rot); const zc=r.z; if (zc<=0){ penDown=false; continue; } const s=proj(r.x,ya,zc); if(!penDown){ ctx.moveTo(s.x,s.y); penDown=true; } else ctx.lineTo(s.x,s.y); } ctx.stroke(); if (elapsed>=1) t.done=true; }); tracksCount.textContent = tracks.filter(t=>!t.done).length; }
+        function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); rot += 0.003; drawGraticule(); drawTracks(); requestAnimationFrame(draw); }
+        draw(); setInterval(()=> triggerStrikeDemo(), 9000);
+      }
+
+      function generateGlowCanvas(){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); const grd=g.createRadialGradient(128,128,10,128,128,128); grd.addColorStop(0,'rgba(60,255,143,0.55)'); grd.addColorStop(1,'rgba(60,255,143,0)'); g.fillStyle=grd; g.fillRect(0,0,256,256); return c; }
+      function generateImpactCanvas(){ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); g.clearRect(0,0,128,128); const grd=g.createRadialGradient(64,64,2,64,64,64); grd.addColorStop(0,'rgba(60,255,143,0.9)'); grd.addColorStop(0.5,'rgba(60,255,143,0.35)'); grd.addColorStop(1,'rgba(60,255,143,0)'); g.fillStyle=grd; g.beginPath(); g.arc(64,64,64,0,Math.PI*2); g.fill(); return c; }
+    } catch(err){ showFatal(err); }
   </script>
 
   <script>
