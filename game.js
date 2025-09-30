@@ -433,15 +433,13 @@ const systemMessages = [
 ];
 
 function initSystemMessages() {
-  const console = document.getElementById('system-console');
-  if (!console) return;
+  const sysConsole = document.getElementById('system-console');
+  if (!sysConsole) return;
   
-  console.style.display = 'block';
+  sysConsole.style.display = 'flex';
   
-  const header = console.querySelector('.console-header');
-  header.addEventListener('mousedown', startDrag);
-  document.addEventListener('mousemove', drag);
-  document.addEventListener('mouseup', stopDrag);
+  // Make draggable using the pattern from your code
+  makeDraggable(sysConsole, sysConsole.querySelector('.console-header'), 'system-console-position');
   
   addSystemMessage('SYSTEM MESSAGES CONSOLE ONLINE');
   addSystemMessage('MONITORING NORAD SECURITY STATUS...');
@@ -472,43 +470,99 @@ function addSystemMessage(text) {
   }
 }
 
-function startDrag(e) {
-  if (e.target.classList.contains('console-close') || 
-      e.target.classList.contains('console-minimize')) return;
-  
-  isDragging = true;
-  const console = document.getElementById('system-console');
-  const rect = console.getBoundingClientRect();
-  dragOffset.x = e.clientX - rect.left;
-  dragOffset.y = e.clientY - rect.top;
-  console.style.cursor = 'grabbing';
-}
+// Draggable function (from your provided code)
+function makeDraggable(panel, handle, storageKey) {
+  if (!panel || !handle) return;
 
-function drag(e) {
-  if (!isDragging) return;
-  
-  const console = document.getElementById('system-console');
-  const newX = e.clientX - dragOffset.x;
-  const newY = e.clientY - dragOffset.y;
-  
-  console.style.left = newX + 'px';
-  console.style.top = newY + 'px';
-  console.style.right = 'auto';
-  console.style.bottom = 'auto';
-}
+  let startX = 0, startY = 0;
+  let startLeft = 0, startTop = 0;
+  let dragging = false;
+  let hasCustomPosition = false;
 
-function stopDrag() {
-  if (isDragging) {
-    const console = document.getElementById('system-console');
-    console.style.cursor = 'grab';
-  }
-  isDragging = false;
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+
+  const persist = (left, top) => {
+    try { 
+      localStorage.setItem(storageKey, JSON.stringify({ left, top })); 
+    } catch(_e) {}
+  };
+
+  const applyPosition = (left, top) => {
+    const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
+    const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight);
+    const L = clamp(left, 0, maxLeft);
+    const T = clamp(top, 0, maxTop);
+    panel.style.left = L + 'px';
+    panel.style.top = T + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+    return { left: L, top: T };
+  };
+
+  const loadStoredPosition = () => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const { left, top } = JSON.parse(raw) || {};
+      if (Number.isFinite(left) && Number.isFinite(top)) {
+        const applied = applyPosition(left, top);
+        hasCustomPosition = true;
+        persist(applied.left, applied.top);
+      }
+    } catch(_e) {}
+  };
+
+  const onMouseMove = (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    applyPosition(startLeft + dx, startTop + dy);
+    hasCustomPosition = true;
+  };
+
+  const onMouseUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    const rect = panel.getBoundingClientRect();
+    const applied = applyPosition(rect.left, rect.top);
+    persist(applied.left, applied.top);
+    handle.setAttribute('aria-grabbed', 'false');
+  };
+
+  const onMouseDown = (e) => {
+    if (e.button !== 0) return;
+    if (e.target.classList.contains('console-close') || 
+        e.target.classList.contains('console-minimize')) return;
+    
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = panel.getBoundingClientRect();
+    startLeft = rect.left;
+    startTop = rect.top;
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    handle.setAttribute('aria-grabbed', 'true');
+    e.preventDefault();
+  };
+
+  window.addEventListener('resize', () => {
+    if (!hasCustomPosition) return;
+    const rect = panel.getBoundingClientRect();
+    const applied = applyPosition(rect.left, rect.top);
+    persist(applied.left, applied.top);
+  });
+
+  handle.addEventListener('mousedown', onMouseDown);
+  loadStoredPosition();
 }
 
 function toggleConsole() {
-  const console = document.getElementById('system-console');
-  const content = console.querySelector('.console-content');
-  const minimizeBtn = console.querySelector('.console-minimize');
+  const sysConsole = document.getElementById('system-console');
+  const content = sysConsole.querySelector('.console-content');
+  const minimizeBtn = sysConsole.querySelector('.console-minimize');
   
   if (content.style.display === 'none') {
     content.style.display = 'block';
@@ -520,8 +574,8 @@ function toggleConsole() {
 }
 
 function closeConsole() {
-  const console = document.getElementById('system-console');
-  console.style.display = 'none';
+  const sysConsole = document.getElementById('system-console');
+  sysConsole.style.display = 'none';
   if (systemMessagesInterval) {
     clearInterval(systemMessagesInterval);
   }
