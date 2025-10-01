@@ -1203,137 +1203,161 @@ document.addEventListener('DOMContentLoaded', () => {
   initTitleGlobe();
 });
 
-// ==================== TITLE SCREEN GLOBE ====================
-let titleScene, titleCamera, titleRenderer, titleGlobe;
-let titleSatellites = [];
+// ==================== TITLE SCREEN MAP ====================
+let titleMapCanvas, titleMapCtx;
 let titleMissiles = [];
+let titleGeoData = null;
 
 function initTitleGlobe() {
   const canvas = document.getElementById('title-globe-canvas');
   if (!canvas) return;
   
-  titleScene = new THREE.Scene();
-  titleCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  titleRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false });
-  titleRenderer.setSize(window.innerWidth, window.innerHeight);
-  titleRenderer.setClearColor(0x000000, 0);
+  // Set up 2D canvas for map view
+  titleMapCanvas = canvas;
+  titleMapCtx = titleMapCanvas.getContext('2d');
+  titleMapCanvas.width = 800;
+  titleMapCanvas.height = 400;
   
-  // Create wireframe globe - more retro with fewer segments
-  const radius = 1.5;
-  const segments = 12;
-  const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
-  const wireframeMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00ff00,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.5
-  });
-  titleGlobe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
-  titleScene.add(titleGlobe);
-  
-  titleCamera.position.z = 4;
-  titleCamera.position.y = 0;
-  
-  animateTitleGlobe();
+  // Load GeoJSON data for map
+  fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+    .then(response => response.json())
+    .then(data => { 
+      titleGeoData = data;
+      animateTitleMap();
+    })
+    .catch(error => { 
+      console.log('GeoJSON load failed');
+      animateTitleMap();
+    });
   
   // Launch multiple missiles frequently
   const launchMissileWave = () => {
-    const numMissiles = Math.floor(Math.random() * 4) + 1; // 1-4 missiles
+    const numMissiles = Math.floor(Math.random() * 4) + 1;
     for (let i = 0; i < numMissiles; i++) {
       setTimeout(() => launchTitleMissile(), i * 200);
     }
-    const nextDelay = Math.random() * 2000 + 1000; // 1-3 seconds
+    const nextDelay = Math.random() * 2000 + 1000;
     setTimeout(launchMissileWave, nextDelay);
   };
   launchMissileWave();
 }
 
 function launchTitleMissile() {
-  // More diverse launch locations including southern hemisphere
   const positions = [
-    { source: { lat: 61, lon: 105 }, target: { lat: 39, lon: -98 } },    // Russia -> USA
-    { source: { lat: 35, lon: 104 }, target: { lat: 51, lon: 10 } },     // China -> Germany
-    { source: { lat: 39, lon: -98 }, target: { lat: 61, lon: 105 } },    // USA -> Russia
-    { source: { lat: 55, lon: -3 }, target: { lat: 35, lon: 104 } },     // UK -> China
-    { source: { lat: 46, lon: 2 }, target: { lat: 61, lon: 105 } },      // France -> Russia
-    { source: { lat: 20, lon: 78 }, target: { lat: 35, lon: 104 } },     // India -> China
-    { source: { lat: -25, lon: 133 }, target: { lat: 35, lon: 104 } },   // Australia -> China
-    { source: { lat: 35, lon: 104 }, target: { lat: -25, lon: 133 } },   // China -> Australia
-    { source: { lat: 61, lon: 105 }, target: { lat: 51, lon: 10 } },     // Russia -> Germany
-    { source: { lat: 39, lon: -98 }, target: { lat: 35, lon: 104 } },    // USA -> China
-    { source: { lat: 51, lon: 10 }, target: { lat: 61, lon: 105 } },     // Germany -> Russia
-    { source: { lat: -25, lon: 133 }, target: { lat: 61, lon: 105 } }    // Australia -> Russia
+    { source: { lat: 61, lon: 105 }, target: { lat: 39, lon: -98 } },
+    { source: { lat: 35, lon: 104 }, target: { lat: 51, lon: 10 } },
+    { source: { lat: 39, lon: -98 }, target: { lat: 61, lon: 105 } },
+    { source: { lat: 55, lon: -3 }, target: { lat: 35, lon: 104 } },
+    { source: { lat: 46, lon: 2 }, target: { lat: 61, lon: 105 } },
+    { source: { lat: 20, lon: 78 }, target: { lat: 35, lon: 104 } },
+    { source: { lat: -25, lon: 133 }, target: { lat: 35, lon: 104 } },
+    { source: { lat: 35, lon: 104 }, target: { lat: -25, lon: 133 } },
+    { source: { lat: 61, lon: 105 }, target: { lat: 51, lon: 10 } },
+    { source: { lat: 39, lon: -98 }, target: { lat: 35, lon: 104 } },
+    { source: { lat: 51, lon: 10 }, target: { lat: 61, lon: 105 } },
+    { source: { lat: -25, lon: 133 }, target: { lat: 61, lon: 105 } }
   ];
   const missile = positions[Math.floor(Math.random() * positions.length)];
-  titleMissiles.push({ ...missile, progress: 0 });
+  
+  const sourceX = ((missile.source.lon + 180) / 360) * titleMapCanvas.width;
+  const sourceY = ((90 - missile.source.lat) / 180) * titleMapCanvas.height;
+  const targetX = ((missile.target.lon + 180) / 360) * titleMapCanvas.width;
+  const targetY = ((90 - missile.target.lat) / 180) * titleMapCanvas.height;
+  
+  titleMissiles.push({
+    source: { x: sourceX, y: sourceY },
+    target: { x: targetX, y: targetY },
+    progress: 0,
+    active: true
+  });
 }
 
-function createTitleMissileArc(source, target, progress) {
-  const phi1 = (90 - source.lat) * (Math.PI / 180);
-  const theta1 = (source.lon + 180) * (Math.PI / 180);
-  const phi2 = (90 - target.lat) * (Math.PI / 180);
-  const theta2 = (target.lon + 180) * (Math.PI / 180);
-  const radius = 1.5;
-  const points = [];
-  
-  // Use same arc calculation as the main game for bigger, more dramatic arcs
-  for (let i = 0; i <= progress * 50; i++) {
-    const t = i / 50;
-    const phi = phi1 + (phi2 - phi1) * t;
-    const theta = theta1 + (theta2 - theta1) * t;
-    const altitude = Math.sin(t * Math.PI) * 1.0; // Bigger arc height
-    const x = -(radius + altitude) * Math.sin(phi) * Math.cos(theta);
-    const y = (radius + altitude) * Math.cos(phi);
-    const z = (radius + altitude) * Math.sin(phi) * Math.sin(theta);
-    points.push(new THREE.Vector3(x, y, z));
-  }
-  
-  if (points.length > 1) {
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ 
-      color: 0xff0000,
-      transparent: true,
-      opacity: 0.9,
-      linewidth: 2
-    });
-    return new THREE.Line(geometry, material);
-  }
-  return null;
-}
-
-function animateTitleGlobe() {
-  requestAnimationFrame(animateTitleGlobe);
-  if (!titleGlobe || !titleScene) return;
-  
-  // Rotate globe slowly
-  titleGlobe.rotation.y += 0.002;
-  titleGlobe.rotation.x = 0.1;
-  
-  // Clean up old arcs from scene - only keep the globe
-  titleScene.children = titleScene.children.filter(child => 
-    child === titleGlobe
-  );
-  
-  // Update missiles
-  titleMissiles.forEach((missile, idx) => {
-    missile.progress += 0.004; // Slightly slower for more dramatic effect
-    if (missile.progress >= 1) {
-      titleMissiles.splice(idx, 1);
-    } else {
-      const arc = createTitleMissileArc(missile.source, missile.target, missile.progress);
-      if (arc) titleScene.add(arc);
+function drawTitleWorldMap() {
+  if (!titleGeoData) return;
+  titleMapCtx.strokeStyle = '#33ff33';
+  titleMapCtx.lineWidth = 1;
+  titleMapCtx.shadowBlur = 5;
+  titleMapCtx.shadowColor = '#33ff33';
+  titleGeoData.features.forEach(feature => {
+    const geometry = feature.geometry;
+    if (geometry.type === 'Polygon') {
+      drawTitlePolygon(geometry.coordinates);
+    } else if (geometry.type === 'MultiPolygon') {
+      geometry.coordinates.forEach(polygon => drawTitlePolygon(polygon));
     }
   });
+}
+
+function drawTitlePolygon(coordinates) {
+  coordinates.forEach(ring => {
+    titleMapCtx.beginPath();
+    ring.forEach((coord, index) => {
+      const x = ((coord[0] + 180) / 360) * titleMapCanvas.width;
+      const y = ((90 - coord[1]) / 180) * titleMapCanvas.height;
+      if (index === 0) {
+        titleMapCtx.moveTo(x, y);
+      } else {
+        titleMapCtx.lineTo(x, y);
+      }
+    });
+    titleMapCtx.closePath();
+    titleMapCtx.stroke();
+  });
+}
+
+function drawTitleMissileTrajectory(source, target, progress) {
+  const dx = target.x - source.x;
+  const dy = target.y - source.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const arcHeight = distance * 0.3;
   
-  titleRenderer.render(titleScene, titleCamera);
+  titleMapCtx.strokeStyle = '#ff0000';
+  titleMapCtx.lineWidth = 3;
+  titleMapCtx.shadowBlur = 15;
+  titleMapCtx.shadowColor = '#ff0000';
+  titleMapCtx.setLineDash([]);
+  titleMapCtx.beginPath();
+  titleMapCtx.moveTo(source.x, source.y);
+  
+  for (let i = 0; i <= progress; i += 0.02) {
+    const x = source.x + dx * i;
+    const y = source.y + dy * i - Math.sin(i * Math.PI) * arcHeight;
+    titleMapCtx.lineTo(x, y);
+  }
+  titleMapCtx.stroke();
+  
+  if (progress < 1) {
+    const currentX = source.x + dx * progress;
+    const currentY = source.y + dy * progress - Math.sin(progress * Math.PI) * arcHeight;
+    titleMapCtx.fillStyle = '#ffff00';
+    titleMapCtx.shadowBlur = 20;
+    titleMapCtx.shadowColor = '#ffff00';
+    titleMapCtx.beginPath();
+    titleMapCtx.arc(currentX, currentY, 4, 0, Math.PI * 2);
+    titleMapCtx.fill();
+  }
+}
+
+function animateTitleMap() {
+  requestAnimationFrame(animateTitleMap);
+  if (!titleMapCtx) return;
+  
+  titleMapCtx.clearRect(0, 0, titleMapCanvas.width, titleMapCanvas.height);
+  drawTitleWorldMap();
+  
+  titleMissiles.forEach((missile, idx) => {
+    if (missile.active) {
+      missile.progress += 0.006;
+      if (missile.progress >= 1) {
+        titleMissiles.splice(idx, 1);
+      } else {
+        drawTitleMissileTrajectory(missile.source, missile.target, missile.progress);
+      }
+    }
+  });
 }
 
 window.addEventListener('resize', () => {
-  if (titleRenderer && titleCamera) {
-    titleRenderer.setSize(window.innerWidth, window.innerHeight);
-    titleCamera.aspect = window.innerWidth / window.innerHeight;
-    titleCamera.updateProjectionMatrix();
-  }
   if (renderer) resizeGlobe();
   if (mapCanvas) resizeMap();
 });
