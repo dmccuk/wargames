@@ -1214,78 +1214,55 @@ function initTitleGlobe() {
   
   titleScene = new THREE.Scene();
   titleCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  titleRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+  titleRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false });
   titleRenderer.setSize(window.innerWidth, window.innerHeight);
   titleRenderer.setClearColor(0x000000, 0);
   
-  // Create wireframe globe
-  const radius = 2;
-  const segments = 16;
+  // Create wireframe globe - more retro with fewer segments
+  const radius = 1.5;
+  const segments = 12;
   const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
   const wireframeMaterial = new THREE.MeshBasicMaterial({
     color: 0x00ff00,
     wireframe: true,
     transparent: true,
-    opacity: 0.6
+    opacity: 0.5
   });
   titleGlobe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
   titleScene.add(titleGlobe);
   
-  // Add country markers
-  const markerPositions = [
-    { lat: 39, lon: -98 },   // USA
-    { lat: 61, lon: 105 },   // Russia
-    { lat: 35, lon: 104 },   // China
-    { lat: 51, lon: 10 },    // Germany
-    { lat: 46, lon: 2 },     // France
-    { lat: 55, lon: -3 }     // UK
-  ];
-  
-  markerPositions.forEach(pos => {
-    const phi = (90 - pos.lat) * (Math.PI / 180);
-    const theta = (pos.lon + 180) * (Math.PI / 180);
-    const x = -radius * Math.sin(phi) * Math.cos(theta);
-    const y = radius * Math.cos(phi);
-    const z = radius * Math.sin(phi) * Math.sin(theta);
-    const markerGeometry = new THREE.SphereGeometry(0.04, 8, 8);
-    const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-    marker.position.set(x, y, z);
-    titleScene.add(marker);
-  });
-  
-  // Create 4 satellites
-  for (let i = 0; i < 4; i++) {
-    const angle = (i / 4) * Math.PI * 2;
-    const satGeometry = new THREE.SphereGeometry(0.03, 8, 8);
-    const satMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x00ffff,
-      emissive: 0x00ffff,
-      emissiveIntensity: 0.7
-    });
-    const satMesh = new THREE.Mesh(satGeometry, satMaterial);
-    titleScene.add(satMesh);
-    titleSatellites.push({ mesh: satMesh, angle: angle, speed: 0.01 });
-  }
-  
-  titleCamera.position.z = 5;
-  titleCamera.position.y = 1;
+  titleCamera.position.z = 4;
+  titleCamera.position.y = 0;
   
   animateTitleGlobe();
   
-  // Launch demo missiles periodically
-  setInterval(() => {
-    if (titleMissiles.length < 3) {
-      launchTitleMissile();
+  // Launch multiple missiles frequently
+  const launchMissileWave = () => {
+    const numMissiles = Math.floor(Math.random() * 4) + 1; // 1-4 missiles
+    for (let i = 0; i < numMissiles; i++) {
+      setTimeout(() => launchTitleMissile(), i * 200);
     }
-  }, 3000);
+    const nextDelay = Math.random() * 2000 + 1000; // 1-3 seconds
+    setTimeout(launchMissileWave, nextDelay);
+  };
+  launchMissileWave();
 }
 
 function launchTitleMissile() {
+  // More diverse launch locations including southern hemisphere
   const positions = [
-    { source: { lat: 61, lon: 105 }, target: { lat: 39, lon: -98 } },
-    { source: { lat: 35, lon: 104 }, target: { lat: 51, lon: 10 } },
-    { source: { lat: 39, lon: -98 }, target: { lat: 61, lon: 105 } }
+    { source: { lat: 61, lon: 105 }, target: { lat: 39, lon: -98 } },    // Russia -> USA
+    { source: { lat: 35, lon: 104 }, target: { lat: 51, lon: 10 } },     // China -> Germany
+    { source: { lat: 39, lon: -98 }, target: { lat: 61, lon: 105 } },    // USA -> Russia
+    { source: { lat: 55, lon: -3 }, target: { lat: 35, lon: 104 } },     // UK -> China
+    { source: { lat: 46, lon: 2 }, target: { lat: 61, lon: 105 } },      // France -> Russia
+    { source: { lat: 20, lon: 78 }, target: { lat: 35, lon: 104 } },     // India -> China
+    { source: { lat: -25, lon: 133 }, target: { lat: 35, lon: 104 } },   // Australia -> China
+    { source: { lat: 35, lon: 104 }, target: { lat: -25, lon: 133 } },   // China -> Australia
+    { source: { lat: 61, lon: 105 }, target: { lat: 51, lon: 10 } },     // Russia -> Germany
+    { source: { lat: 39, lon: -98 }, target: { lat: 35, lon: 104 } },    // USA -> China
+    { source: { lat: 51, lon: 10 }, target: { lat: 61, lon: 105 } },     // Germany -> Russia
+    { source: { lat: -25, lon: 133 }, target: { lat: 61, lon: 105 } }    // Australia -> Russia
   ];
   const missile = positions[Math.floor(Math.random() * positions.length)];
   titleMissiles.push({ ...missile, progress: 0 });
@@ -1296,14 +1273,14 @@ function createTitleMissileArc(source, target, progress) {
   const theta1 = (source.lon + 180) * (Math.PI / 180);
   const phi2 = (90 - target.lat) * (Math.PI / 180);
   const theta2 = (target.lon + 180) * (Math.PI / 180);
-  const radius = 2;
+  const radius = 1.5;
   const points = [];
   
   for (let i = 0; i <= progress * 30; i++) {
     const t = i / 30;
     const phi = phi1 + (phi2 - phi1) * t;
     const theta = theta1 + (theta2 - theta1) * t;
-    const altitude = Math.sin(t * Math.PI) * 0.8;
+    const altitude = Math.sin(t * Math.PI) * 0.6;
     const x = -(radius + altitude) * Math.sin(phi) * Math.cos(theta);
     const y = (radius + altitude) * Math.cos(phi);
     const z = (radius + altitude) * Math.sin(phi) * Math.sin(theta);
@@ -1313,9 +1290,10 @@ function createTitleMissileArc(source, target, progress) {
   if (points.length > 1) {
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = new THREE.LineBasicMaterial({ 
-      color: 0xff3333,
+      color: 0xff0000,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.9,
+      linewidth: 2
     });
     return new THREE.Line(geometry, material);
   }
@@ -1328,28 +1306,16 @@ function animateTitleGlobe() {
   
   // Rotate globe slowly
   titleGlobe.rotation.y += 0.002;
-  titleGlobe.rotation.x = 0.2;
+  titleGlobe.rotation.x = 0.1;
   
-  // Update satellites in orbit
-  titleSatellites.forEach(sat => {
-    sat.angle += sat.speed;
-    const orbitRadius = 2.5;
-    const x = orbitRadius * Math.cos(sat.angle);
-    const y = orbitRadius * Math.sin(sat.angle) * 0.5;
-    const z = orbitRadius * Math.sin(sat.angle);
-    sat.mesh.position.set(x, y, z);
-  });
-  
-  // Clean up old arcs from scene
+  // Clean up old arcs from scene - only keep the globe
   titleScene.children = titleScene.children.filter(child => 
-    child === titleGlobe || 
-    child.geometry instanceof THREE.SphereGeometry ||
-    titleSatellites.some(s => s.mesh === child)
+    child === titleGlobe
   );
   
   // Update missiles
   titleMissiles.forEach((missile, idx) => {
-    missile.progress += 0.004;
+    missile.progress += 0.005;
     if (missile.progress >= 1) {
       titleMissiles.splice(idx, 1);
     } else {
