@@ -113,7 +113,7 @@ body {
   text-shadow: 0 0 10px var(--phosphor);
   box-shadow: 0 0 20px rgba(51, 255, 51, 0.3);
   transition: all 0.3s;
-  margin-top: 80px;
+  margin-top: 50px;
 }
 
 .start-button:hover {
