@@ -133,6 +133,7 @@
     <div id="header">
       <div>W.O.P.R // GLOBAL THERMONUCLEAR WAR</div>
       <div class="controls">
+        <span style="margin-right: 20px;">TIME: <span id="game-timer">06:00</span></span>
         CONNECTION: <span id="connection-status">ACTIVE</span>
       </div>
     </div>
@@ -160,22 +161,39 @@
 
     <div id="footer">
       <div>NORAD // CHEYENNE MTN</div>
-      <div>LAUNCHES: <span id="track-count">0</span> | DEFCON: <span id="defcon">5</span> | SCORE: <span id="final-score">0</span></div>
-      <div>STATUS: <span id="game-status">ACTIVE</span></div>
+      <div>
+        LAUNCHES: <span id="track-count">0</span> | 
+        DEFCON: <span id="defcon">5</span> | 
+        SHIELD: <span id="shield-status">OFFLINE</span> | 
+        SCORE: <span id="final-score">0</span>
+      </div>
+      <div>CITIES: <span id="cities-remaining">10/10</span></div>
     </div>
   </div>
 
-  <!-- FLOATING SYSTEM MESSAGES CONSOLE - OUTSIDE NORAD SCREEN -->
-  <div id="system-console" class="system-console">
-    <div class="console-header">
-      <span class="console-title">⚠ SYSTEM MESSAGES</span>
-      <div class="console-controls">
-        <button class="console-minimize" onclick="window.toggleConsole()">_</button>
-        <button class="console-close" onclick="window.closeConsole()">X</button>
+  <!-- SDI ACTIVATION POPUP -->
+  <div id="sdi-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-box">
+      <div class="popup-header">⚠ SDI DEFENSE SYSTEM</div>
+      <div class="popup-body">
+        <div class="terminal-text" style="margin-bottom: 20px;">
+          STRATEGIC DEFENSE INITIATIVE<br>
+          ORBITAL LASER PLATFORM
+        </div>
+        <div class="terminal-text" style="color: var(--warn); margin-bottom: 20px;">
+          COST: 5000 POINTS<br>
+          DURATION: 60 SECONDS<br>
+          INTERCEPT RATE: 75%
+        </div>
+        <div class="terminal-text">
+          Activate satellite defense system to<br>
+          protect USA from incoming missiles?
+        </div>
       </div>
-    </div>
-    <div class="console-content">
-      <div id="system-output" class="system-output"></div>
+      <div class="popup-buttons">
+        <button class="popup-btn" onclick="window.confirmSDIActivation()">ACTIVATE</button>
+        <button class="popup-btn secondary" onclick="window.closeSDIPopup()">CANCEL</button>
+      </div>
     </div>
   </div>
 
@@ -187,10 +205,15 @@
       NOT TO PLAY.
     </div>
     <div class="final-score">FINAL SCORE: <span id="end-score">0</span></div>
+    <div class="terminal-text" style="font-size: 18px; margin-top: 30px;">
+      <div>MISSILES LAUNCHED: <span id="end-missiles">0</span></div>
+      <div>INTERCEPTIONS: <span id="end-intercepts">0</span></div>
+      <div>CITIES DESTROYED: <span id="end-cities">0</span></div>
+    </div>
     <div class="terminal-text" style="font-size: 24px; margin-top: 30px;">
       HOW ABOUT A NICE GAME OF CHESS?
     </div>
-    <button class="restart-btn" onclick="location.reload()">PLAY AGAIN</button>
+    <button class="restart-btn" onclick="window.restartGame()">PLAY AGAIN</button>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
