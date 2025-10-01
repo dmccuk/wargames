@@ -104,7 +104,7 @@ body {
   font-size: 72px;
   letter-spacing: 10px;
   text-shadow: 0 0 20px var(--phosphor), 0 0 40px var(--phosphor);
-  margin-bottom: 60px;
+  margin-bottom: 80px;
   animation: glow-pulse 2s infinite;
 }
 
