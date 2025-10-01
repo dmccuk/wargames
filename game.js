@@ -1212,11 +1212,11 @@ function initTitleGlobe() {
   const canvas = document.getElementById('title-globe-canvas');
   if (!canvas) return;
   
-  // Set up 2D canvas for map view
+  // Set up 2D canvas for map view - wider dimensions
   titleMapCanvas = canvas;
   titleMapCtx = titleMapCanvas.getContext('2d');
-  titleMapCanvas.width = 900;
-  titleMapCanvas.height = 450;
+  titleMapCanvas.width = 1000;
+  titleMapCanvas.height = 500;
   
   // Load GeoJSON data for map
   fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
