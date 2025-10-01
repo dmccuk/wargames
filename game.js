@@ -1215,8 +1215,8 @@ function initTitleGlobe() {
   // Set up 2D canvas for map view
   titleMapCanvas = canvas;
   titleMapCtx = titleMapCanvas.getContext('2d');
-  titleMapCanvas.width = 800;
-  titleMapCanvas.height = 400;
+  titleMapCanvas.width = 900;
+  titleMapCanvas.height = 450;
   
   // Load GeoJSON data for map
   fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
@@ -1309,13 +1309,13 @@ function drawTitleMissileTrajectory(source, target, progress) {
   const dx = target.x - source.x;
   const dy = target.y - source.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  const arcHeight = distance * 0.3;
+  const arcHeight = distance * 0.15; // Reduced from 0.3 for lower arc
   
   titleMapCtx.strokeStyle = '#ff0000';
-  titleMapCtx.lineWidth = 3;
-  titleMapCtx.shadowBlur = 15;
+  titleMapCtx.lineWidth = 2;
+  titleMapCtx.shadowBlur = 10;
   titleMapCtx.shadowColor = '#ff0000';
-  titleMapCtx.setLineDash([]);
+  titleMapCtx.setLineDash([5, 5]); // Dotted line pattern
   titleMapCtx.beginPath();
   titleMapCtx.moveTo(source.x, source.y);
   
@@ -1325,6 +1325,7 @@ function drawTitleMissileTrajectory(source, target, progress) {
     titleMapCtx.lineTo(x, y);
   }
   titleMapCtx.stroke();
+  titleMapCtx.setLineDash([]); // Reset line dash
   
   if (progress < 1) {
     const currentX = source.x + dx * progress;
@@ -1344,6 +1345,7 @@ function animateTitleMap() {
   
   titleMapCtx.clearRect(0, 0, titleMapCanvas.width, titleMapCanvas.height);
   drawTitleWorldMap();
+  drawTitleCountryLabels();
   
   titleMissiles.forEach((missile, idx) => {
     if (missile.active) {
@@ -1354,6 +1356,41 @@ function animateTitleMap() {
         drawTitleMissileTrajectory(missile.source, missile.target, missile.progress);
       }
     }
+  });
+}
+
+function drawTitleCountryLabels() {
+  titleMapCtx.fillStyle = '#ff0000';
+  titleMapCtx.shadowBlur = 5;
+  titleMapCtx.shadowColor = '#ff0000';
+  titleMapCtx.font = '14px VT323';
+  
+  const labelCountries = {
+    'USA': { lat: 39.8283, lon: -98.5795 },
+    'RUSSIA': { lat: 61.5240, lon: 105.3188 },
+    'CHINA': { lat: 35.8617, lon: 104.1954 },
+    'UK': { lat: 55.3781, lon: -3.4360 },
+    'FRANCE': { lat: 46.2276, lon: 2.2137 },
+    'GERMANY': { lat: 51.1657, lon: 10.4515 },
+    'INDIA': { lat: 20.5937, lon: 78.9629 },
+    'JAPAN': { lat: 36.2048, lon: 138.2529 },
+    'CANADA': { lat: 56.1304, lon: -106.3468 },
+    'AUSTRALIA': { lat: -25.2744, lon: 133.7751 },
+    'UK_TRIDENT': { lat: 20.0, lon: -160.0 },
+    'UK_SUB_ATLANTIC': { lat: 40.0, lon: -30.0 }
+  };
+  
+  Object.entries(labelCountries).forEach(([name, coords]) => {
+    const x = ((coords.lon + 180) / 360) * titleMapCanvas.width;
+    const y = ((90 - coords.lat) / 180) * titleMapCanvas.height;
+    
+    // Draw red dot
+    titleMapCtx.beginPath();
+    titleMapCtx.arc(x, y, 3, 0, Math.PI * 2);
+    titleMapCtx.fill();
+    
+    // Draw label
+    titleMapCtx.fillText(name, x + 6, y + 4);
   });
 }
 
