@@ -489,100 +489,101 @@ body {
   text-shadow: 0 0 10px var(--warn); 
 }
 
-/* FLOATING SYSTEM MESSAGES CONSOLE */
-.system-console {
+#shield-status {
+  font-weight: bold;
+}
+
+#shield-status.active {
+  color: #00ffff;
+  text-shadow: 0 0 10px #00ffff;
+  animation: pulse 2s infinite;
+}
+
+/* Popup Styles */
+.popup-overlay {
   position: fixed;
-  left: 10px;
-  bottom: 80px;
-  width: 350px;
-  height: 200px;
-  background: rgba(5, 15, 5, 0.92);
-  border: 1px solid var(--phosphor);
-  box-shadow: 0 0 15px rgba(51, 255, 51, 0.3), inset 0 0 20px rgba(51, 255, 51, 0.05);
-  z-index: 9999;
-  display: none;
-  flex-direction: column;
-}
-
-.console-header {
-  background: rgba(0, 20, 0, 0.85);
-  padding: 6px 10px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  border-bottom: 1px solid var(--phosphor);
-  cursor: move;
-  user-select: none;
+  z-index: 10000;
+  animation: fadeIn 0.3s;
 }
 
-.console-title {
-  font-size: 14px;
-  letter-spacing: 2px;
-  text-shadow: 0 0 6px var(--phosphor);
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.console-controls {
+.popup-box {
+  background: rgba(10, 10, 10, 0.98);
+  border: 3px solid var(--phosphor);
+  box-shadow: 0 0 40px rgba(51, 255, 51, 0.6), inset 0 0 30px rgba(51, 255, 51, 0.1);
+  width: 500px;
+  animation: popupAppear 0.3s ease-out;
+}
+
+@keyframes popupAppear {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.popup-header {
+  background: rgba(51, 255, 51, 0.2);
+  padding: 15px 20px;
+  font-size: 24px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px var(--phosphor);
+  border-bottom: 2px solid var(--phosphor);
+  text-align: center;
+}
+
+.popup-body {
+  padding: 30px;
+  text-align: center;
+}
+
+.popup-buttons {
   display: flex;
-  gap: 6px;
+  gap: 10px;
+  padding: 20px;
+  border-top: 2px solid var(--phosphor);
 }
 
-.console-minimize,
-.console-close {
-  background: transparent;
-  border: 1px solid var(--phosphor);
-  color: var(--phosphor);
+.popup-btn {
+  flex: 1;
   font-family: 'VT323', monospace;
-  font-size: 16px;
-  width: 24px;
-  height: 24px;
+  font-size: 22px;
+  background: transparent;
+  border: 2px solid var(--phosphor);
+  color: var(--phosphor);
+  padding: 12px 20px;
   cursor: pointer;
-  text-shadow: 0 0 5px var(--phosphor);
+  text-shadow: 0 0 8px var(--phosphor);
   transition: all 0.2s;
-  padding: 0;
-  line-height: 1;
 }
 
-.console-minimize:hover,
-.console-close:hover {
+.popup-btn:hover {
   background: var(--phosphor);
   color: var(--bg);
   text-shadow: none;
-  box-shadow: 0 0 10px var(--phosphor);
+  box-shadow: 0 0 20px var(--phosphor);
 }
 
-.console-content {
-  display: block;
-  flex: 1;
-  overflow: hidden;
+.popup-btn.secondary {
+  border-color: var(--error);
+  color: var(--error);
+  text-shadow: 0 0 8px var(--error);
 }
 
-.system-output {
-  height: 100%;
-  overflow-y: auto;
-  padding: 8px;
-  font-size: 12px;
-  line-height: 1.35;
-  letter-spacing: 1px;
-}
-
-.system-output::-webkit-scrollbar {
-  width: 6px;
-}
-
-.system-output::-webkit-scrollbar-track {
-  background: rgba(0, 20, 0, 0.5);
-}
-
-.system-output::-webkit-scrollbar-thumb {
-  background: var(--phosphor);
-  box-shadow: 0 0 6px var(--phosphor);
-}
-
-.system-line {
-  margin: 3px 0;
-  text-shadow: 0 0 4px var(--phosphor);
-  font-size: 12px;
-  color: var(--phosphor);
+.popup-btn.secondary:hover {
+  background: var(--error);
+  color: var(--bg);
+  box-shadow: 0 0 20px var(--error);
 }
 
 /* TRANSMISSION POPUPS */
@@ -594,11 +595,6 @@ body {
   box-shadow: 0 0 30px rgba(255, 51, 51, 0.8), inset 0 0 30px rgba(255, 51, 51, 0.2);
   z-index: 600;
   animation: popup-appear 0.3s ease-out;
-}
-
-@keyframes popup-appear {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
 }
 
 .transmission-header {
