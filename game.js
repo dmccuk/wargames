@@ -599,10 +599,10 @@ function startTransmissionPopups() {
   const showRandomTransmission = () => {
     const trans = transmissionMessages[Math.floor(Math.random() * transmissionMessages.length)];
     showTransmission(trans.from, trans.message);
-    const nextDelay = 15000 + Math.random() * 10000; // 15-25 seconds
+    const nextDelay = 15000 + Math.random() * 10000;
     setTimeout(showRandomTransmission, nextDelay);
   };
-  setTimeout(showRandomTransmission, 8000); // First popup after 8 seconds
+  setTimeout(showRandomTransmission, 8000);
 }
 
 function showTransmission(from, message) {
@@ -716,20 +716,17 @@ function processCommand(command) {
 function startAutoLaunch() {
   if (!autoLaunchEnabled) return;
   
-  // Launch 1-3 simultaneous attacks
   const numAttacks = Math.floor(Math.random() * 3) + 1;
   const countryList = Object.keys(countries).filter(c => !countries[c].mobile);
   
   for (let i = 0; i < numAttacks; i++) {
     const source = countryList[Math.floor(Math.random() * countryList.length)];
     const target = countryList[Math.floor(Math.random() * countryList.length)];
-    const missileCount = Math.floor(Math.random() * 3) + 1; // 1-3 missiles per attack
+    const missileCount = Math.floor(Math.random() * 3) + 1;
     
     if (source !== target) {
-      // Stagger launches slightly for visual effect
       setTimeout(() => {
         launchMissile(source, target);
-        // If multiple missiles, launch them in quick succession
         for (let j = 1; j < missileCount; j++) {
           setTimeout(() => {
             launchMissile(source, target);
@@ -1329,11 +1326,11 @@ function animateTitleGlobe() {
   requestAnimationFrame(animateTitleGlobe);
   if (!titleGlobe || !titleScene) return;
   
-  // Rotate globe
+  // Rotate globe slowly
   titleGlobe.rotation.y += 0.002;
   titleGlobe.rotation.x = 0.2;
   
-  // Update satellites
+  // Update satellites in orbit
   titleSatellites.forEach(sat => {
     sat.angle += sat.speed;
     const orbitRadius = 2.5;
@@ -1343,7 +1340,7 @@ function animateTitleGlobe() {
     sat.mesh.position.set(x, y, z);
   });
   
-  // Clean up old arcs
+  // Clean up old arcs from scene
   titleScene.children = titleScene.children.filter(child => 
     child === titleGlobe || 
     child.geometry instanceof THREE.SphereGeometry ||
@@ -1373,3 +1370,12 @@ window.addEventListener('resize', () => {
   if (renderer) resizeGlobe();
   if (mapCanvas) resizeMap();
 });
+
+// Expose functions to window for onclick handlers
+window.startGame = startGame;
+window.checkPassword = checkPassword;
+window.selectGame = selectGame;
+window.checkPuzzle = checkPuzzle;
+window.confirmSDIActivation = confirmSDIActivation;
+window.closeSDIPopup = closeSDIPopup;
+window.restartGame = restartGame;
