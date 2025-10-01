@@ -1276,11 +1276,12 @@ function createTitleMissileArc(source, target, progress) {
   const radius = 1.5;
   const points = [];
   
-  for (let i = 0; i <= progress * 30; i++) {
-    const t = i / 30;
+  // Use same arc calculation as the main game for bigger, more dramatic arcs
+  for (let i = 0; i <= progress * 50; i++) {
+    const t = i / 50;
     const phi = phi1 + (phi2 - phi1) * t;
     const theta = theta1 + (theta2 - theta1) * t;
-    const altitude = Math.sin(t * Math.PI) * 0.6;
+    const altitude = Math.sin(t * Math.PI) * 1.0; // Bigger arc height
     const x = -(radius + altitude) * Math.sin(phi) * Math.cos(theta);
     const y = (radius + altitude) * Math.cos(phi);
     const z = (radius + altitude) * Math.sin(phi) * Math.sin(theta);
@@ -1315,7 +1316,7 @@ function animateTitleGlobe() {
   
   // Update missiles
   titleMissiles.forEach((missile, idx) => {
-    missile.progress += 0.005;
+    missile.progress += 0.004; // Slightly slower for more dramatic effect
     if (missile.progress >= 1) {
       titleMissiles.splice(idx, 1);
     } else {
