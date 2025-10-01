@@ -64,7 +64,7 @@ body {
 
 #title-globe-canvas {
   position: absolute;
-  top: 55%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 750px;
@@ -96,7 +96,7 @@ body {
 
 .subtitle {
   font-size: 28px;
-  margin-bottom: 320px;
+  margin-bottom: 280px;
   color: var(--warn);
   text-shadow: 0 0 10px var(--warn);
 }
@@ -112,7 +112,7 @@ body {
   text-shadow: 0 0 10px var(--phosphor);
   box-shadow: 0 0 20px rgba(51, 255, 51, 0.3);
   transition: all 0.3s;
-  margin-top: 0px;
+  margin-top: 30px;
 }
 
 .start-button:hover {
