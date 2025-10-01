@@ -104,7 +104,7 @@ body {
   font-size: 72px;
   letter-spacing: 10px;
   text-shadow: 0 0 20px var(--phosphor), 0 0 40px var(--phosphor);
-  margin-bottom: 80px;
+  margin-bottom: 60px;
   animation: glow-pulse 2s infinite;
 }
 
@@ -737,6 +737,7 @@ body {
   align-items: center;
   z-index: 10000;
   animation: fadeIn 0.3s;
+  padding: 20px;
 }
 
 @keyframes fadeIn {
@@ -749,6 +750,7 @@ body {
   border: 3px solid var(--phosphor);
   box-shadow: 0 0 40px rgba(51, 255, 51, 0.6), inset 0 0 30px rgba(51, 255, 51, 0.1);
   width: 500px;
+  max-width: 90%;
   animation: popupAppear 0.3s ease-out;
 }
 
@@ -811,10 +813,70 @@ body {
   box-shadow: 0 0 20px var(--error);
 }
 
+/* Mobile responsive for popups */
+@media (max-width: 768px) {
+  .popup-overlay {
+    padding: 15px;
+  }
+  
+  .popup-box {
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .popup-header {
+    font-size: 18px;
+    padding: 12px 15px;
+  }
+  
+  .popup-body {
+    padding: 20px 15px;
+    font-size: 16px;
+  }
+  
+  .popup-buttons {
+    padding: 15px;
+    gap: 8px;
+  }
+  
+  .popup-btn {
+    font-size: 18px;
+    padding: 10px 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .popup-box {
+    max-width: 100%;
+  }
+  
+  .popup-header {
+    font-size: 16px;
+    padding: 10px;
+  }
+  
+  .popup-body {
+    padding: 15px 10px;
+    font-size: 14px;
+  }
+  
+  .popup-buttons {
+    flex-direction: column;
+    padding: 10px;
+  }
+  
+  .popup-btn {
+    font-size: 16px;
+    padding: 10px;
+    width: 100%;
+  }
+}
+
 /* TRANSMISSION POPUPS */
 .transmission-popup {
   position: fixed;
   width: 450px;
+  max-width: 90%;
   background: rgba(10, 10, 10, 0.98);
   border: 3px solid var(--error);
   box-shadow: 0 0 30px rgba(255, 51, 51, 0.8), inset 0 0 30px rgba(255, 51, 51, 0.2);
@@ -860,6 +922,56 @@ body {
   color: var(--bg);
   text-shadow: none;
   box-shadow: 0 0 20px var(--phosphor);
+}
+
+/* Mobile responsive for transmission popups */
+@media (max-width: 768px) {
+  .transmission-popup {
+    width: 90%;
+    max-width: 350px;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%);
+  }
+  
+  .transmission-header {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+  
+  .transmission-body {
+    padding: 15px;
+    font-size: 14px;
+    min-height: 80px;
+  }
+  
+  .transmission-dismiss {
+    font-size: 16px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .transmission-popup {
+    width: 95%;
+    max-width: 300px;
+  }
+  
+  .transmission-header {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+  
+  .transmission-body {
+    padding: 12px;
+    font-size: 12px;
+    min-height: 60px;
+  }
+  
+  .transmission-dismiss {
+    font-size: 14px;
+    padding: 8px;
+  }
 }
 
 /* End Screen */
