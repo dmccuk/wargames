@@ -715,10 +715,30 @@ function processCommand(command) {
 
 function startAutoLaunch() {
   if (!autoLaunchEnabled) return;
+  
+  // Launch 1-3 simultaneous attacks
+  const numAttacks = Math.floor(Math.random() * 3) + 1;
   const countryList = Object.keys(countries).filter(c => !countries[c].mobile);
-  const source = countryList[Math.floor(Math.random() * countryList.length)];
-  const target = countryList[Math.floor(Math.random() * countryList.length)];
-  if (source !== target) launchMissile(source, target);
+  
+  for (let i = 0; i < numAttacks; i++) {
+    const source = countryList[Math.floor(Math.random() * countryList.length)];
+    const target = countryList[Math.floor(Math.random() * countryList.length)];
+    const missileCount = Math.floor(Math.random() * 3) + 1; // 1-3 missiles per attack
+    
+    if (source !== target) {
+      // Stagger launches slightly for visual effect
+      setTimeout(() => {
+        launchMissile(source, target);
+        // If multiple missiles, launch them in quick succession
+        for (let j = 1; j < missileCount; j++) {
+          setTimeout(() => {
+            launchMissile(source, target);
+          }, j * 200);
+        }
+      }, i * 400);
+    }
+  }
+  
   if (autoLaunchEnabled && missileCount < 100) {
     setTimeout(startAutoLaunch, 3000 + Math.random() * 2000);
   }
