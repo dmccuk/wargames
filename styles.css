@@ -17,6 +17,24 @@ body {
   padding-top: 96px;
 }
 
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  body {
+    padding-top: 20px;
+    overflow-y: auto;
+  }
+  
+  .screen {
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding-top: 10px;
+  }
+}
+
 .scanlines {
   position: fixed;
   top: 0;
@@ -114,7 +132,7 @@ body {
   text-shadow: 0 0 10px var(--phosphor);
   box-shadow: 0 0 20px rgba(51, 255, 51, 0.3);
   transition: all 0.3s;
-  margin-top: 50px;
+  margin-top: 80px;
 }
 
 .start-button:hover {
