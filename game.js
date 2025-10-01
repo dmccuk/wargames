@@ -596,12 +596,13 @@ function startIntelligenceReports() {
 }
 
 function startTransmissionPopups() {
-  transmissionInterval = setInterval(() => {
-    if (Math.random() < 0.2) {
-      const trans = transmissionMessages[Math.floor(Math.random() * transmissionMessages.length)];
-      showTransmission(trans.from, trans.message);
-    }
-  }, 15000);
+  const showRandomTransmission = () => {
+    const trans = transmissionMessages[Math.floor(Math.random() * transmissionMessages.length)];
+    showTransmission(trans.from, trans.message);
+    const nextDelay = 15000 + Math.random() * 10000; // 15-25 seconds
+    setTimeout(showRandomTransmission, nextDelay);
+  };
+  setTimeout(showRandomTransmission, 8000); // First popup after 8 seconds
 }
 
 function showTransmission(from, message) {
