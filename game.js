@@ -1201,20 +1201,175 @@ function restartGame() {
   playBeep();
 }
 
-window.addEventListener('resize', () => {
-  if (renderer) resizeGlobe();
-  if (mapCanvas) resizeMap();
-});
-
-window.startGame = startGame;
-window.checkPassword = checkPassword;
-window.selectGame = selectGame;
-window.checkPuzzle = checkPuzzle;
-window.restartGame = restartGame;
-window.showSDIPopup = showSDIPopup;
-window.closeSDIPopup = closeSDIPopup;
-window.confirmSDIActivation = confirmSDIActivation;
-
 document.addEventListener('DOMContentLoaded', () => {
   playBeep();
+  initTitleGlobe();
+});
+
+// ==================== TITLE SCREEN GLOBE ====================
+let titleScene, titleCamera, titleRenderer, titleGlobe;
+let titleSatellites = [];
+let titleMissiles = [];
+
+function initTitleGlobe() {
+  const canvas = document.getElementById('title-globe-canvas');
+  if (!canvas) return;
+  
+  titleScene = new THREE.Scene();
+  titleCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  titleRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+  titleRenderer.setSize(window.innerWidth, window.innerHeight);
+  titleRenderer.setClearColor(0x000000, 0);
+  
+  // Create wireframe globe
+  const radius = 2;
+  const segments = 16;
+  const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
+  const wireframeMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ff00,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.6
+  });
+  titleGlobe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
+  titleScene.add(titleGlobe);
+  
+  // Add country markers
+  const markerPositions = [
+    { lat: 39, lon: -98 },   // USA
+    { lat: 61, lon: 105 },   // Russia
+    { lat: 35, lon: 104 },   // China
+    { lat: 51, lon: 10 },    // Germany
+    { lat: 46, lon: 2 },     // France
+    { lat: 55, lon: -3 }     // UK
+  ];
+  
+  markerPositions.forEach(pos => {
+    const phi = (90 - pos.lat) * (Math.PI / 180);
+    const theta = (pos.lon + 180) * (Math.PI / 180);
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+    const markerGeometry = new THREE.SphereGeometry(0.04, 8, 8);
+    const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+    marker.position.set(x, y, z);
+    titleScene.add(marker);
+  });
+  
+  // Create 4 satellites
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const satGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+    const satMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x00ffff,
+      emissive: 0x00ffff,
+      emissiveIntensity: 0.7
+    });
+    const satMesh = new THREE.Mesh(satGeometry, satMaterial);
+    titleScene.add(satMesh);
+    titleSatellites.push({ mesh: satMesh, angle: angle, speed: 0.01 });
+  }
+  
+  titleCamera.position.z = 5;
+  titleCamera.position.y = 1;
+  
+  animateTitleGlobe();
+  
+  // Launch demo missiles periodically
+  setInterval(() => {
+    if (titleMissiles.length < 3) {
+      launchTitleMissile();
+    }
+  }, 3000);
+}
+
+function launchTitleMissile() {
+  const positions = [
+    { source: { lat: 61, lon: 105 }, target: { lat: 39, lon: -98 } },
+    { source: { lat: 35, lon: 104 }, target: { lat: 51, lon: 10 } },
+    { source: { lat: 39, lon: -98 }, target: { lat: 61, lon: 105 } }
+  ];
+  const missile = positions[Math.floor(Math.random() * positions.length)];
+  titleMissiles.push({ ...missile, progress: 0 });
+}
+
+function createTitleMissileArc(source, target, progress) {
+  const phi1 = (90 - source.lat) * (Math.PI / 180);
+  const theta1 = (source.lon + 180) * (Math.PI / 180);
+  const phi2 = (90 - target.lat) * (Math.PI / 180);
+  const theta2 = (target.lon + 180) * (Math.PI / 180);
+  const radius = 2;
+  const points = [];
+  
+  for (let i = 0; i <= progress * 30; i++) {
+    const t = i / 30;
+    const phi = phi1 + (phi2 - phi1) * t;
+    const theta = theta1 + (theta2 - theta1) * t;
+    const altitude = Math.sin(t * Math.PI) * 0.8;
+    const x = -(radius + altitude) * Math.sin(phi) * Math.cos(theta);
+    const y = (radius + altitude) * Math.cos(phi);
+    const z = (radius + altitude) * Math.sin(phi) * Math.sin(theta);
+    points.push(new THREE.Vector3(x, y, z));
+  }
+  
+  if (points.length > 1) {
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ 
+      color: 0xff3333,
+      transparent: true,
+      opacity: 0.6
+    });
+    return new THREE.Line(geometry, material);
+  }
+  return null;
+}
+
+function animateTitleGlobe() {
+  requestAnimationFrame(animateTitleGlobe);
+  if (!titleGlobe || !titleScene) return;
+  
+  // Rotate globe
+  titleGlobe.rotation.y += 0.002;
+  titleGlobe.rotation.x = 0.2;
+  
+  // Update satellites
+  titleSatellites.forEach(sat => {
+    sat.angle += sat.speed;
+    const orbitRadius = 2.5;
+    const x = orbitRadius * Math.cos(sat.angle);
+    const y = orbitRadius * Math.sin(sat.angle) * 0.5;
+    const z = orbitRadius * Math.sin(sat.angle);
+    sat.mesh.position.set(x, y, z);
+  });
+  
+  // Clean up old arcs
+  titleScene.children = titleScene.children.filter(child => 
+    child === titleGlobe || 
+    child.geometry instanceof THREE.SphereGeometry ||
+    titleSatellites.some(s => s.mesh === child)
+  );
+  
+  // Update missiles
+  titleMissiles.forEach((missile, idx) => {
+    missile.progress += 0.004;
+    if (missile.progress >= 1) {
+      titleMissiles.splice(idx, 1);
+    } else {
+      const arc = createTitleMissileArc(missile.source, missile.target, missile.progress);
+      if (arc) titleScene.add(arc);
+    }
+  });
+  
+  titleRenderer.render(titleScene, titleCamera);
+}
+
+window.addEventListener('resize', () => {
+  if (titleRenderer && titleCamera) {
+    titleRenderer.setSize(window.innerWidth, window.innerHeight);
+    titleCamera.aspect = window.innerWidth / window.innerHeight;
+    titleCamera.updateProjectionMatrix();
+  }
+  if (renderer) resizeGlobe();
+  if (mapCanvas) resizeMap();
 });
