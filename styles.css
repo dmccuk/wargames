@@ -64,7 +64,7 @@ body {
 
 #title-globe-canvas {
   position: absolute;
-  top: 50%;
+  top: 45%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 750px;
@@ -85,7 +85,7 @@ body {
   font-size: 72px;
   letter-spacing: 10px;
   text-shadow: 0 0 20px var(--phosphor), 0 0 40px var(--phosphor);
-  margin-bottom: 20px;
+  margin-bottom: 60px;
   animation: glow-pulse 2s infinite;
 }
 
@@ -99,6 +99,7 @@ body {
   margin-bottom: 280px;
   color: var(--warn);
   text-shadow: 0 0 10px var(--warn);
+  visibility: hidden;
 }
 
 .start-button {
@@ -112,7 +113,7 @@ body {
   text-shadow: 0 0 10px var(--phosphor);
   box-shadow: 0 0 20px rgba(51, 255, 51, 0.3);
   transition: all 0.3s;
-  margin-top: 40px;
+  margin-top: 80px;
 }
 
 .start-button:hover {
