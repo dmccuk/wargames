@@ -1268,7 +1268,8 @@ function launchTitleMissile() {
     source: { x: sourceX, y: sourceY },
     target: { x: targetX, y: targetY },
     progress: 0,
-    active: true
+    active: true,
+    explosion: null
   });
 }
 
@@ -1339,6 +1340,34 @@ function drawTitleMissileTrajectory(source, target, progress) {
   }
 }
 
+function drawTitleExplosion(x, y, frame) {
+  const maxFrames = 20;
+  const radius = (frame / maxFrames) * 30;
+  const opacity = 1 - (frame / maxFrames);
+  
+  // Outer red ring
+  titleMapCtx.shadowBlur = 15;
+  titleMapCtx.shadowColor = '#ff0000';
+  titleMapCtx.strokeStyle = `rgba(255, 0, 0, ${opacity})`;
+  titleMapCtx.lineWidth = 2;
+  titleMapCtx.beginPath();
+  titleMapCtx.arc(x, y, radius, 0, Math.PI * 2);
+  titleMapCtx.stroke();
+  
+  // Middle yellow ring
+  titleMapCtx.strokeStyle = `rgba(255, 255, 0, ${opacity})`;
+  titleMapCtx.lineWidth = 2;
+  titleMapCtx.beginPath();
+  titleMapCtx.arc(x, y, radius * 0.6, 0, Math.PI * 2);
+  titleMapCtx.stroke();
+  
+  // Inner white flash
+  titleMapCtx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+  titleMapCtx.beginPath();
+  titleMapCtx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
+  titleMapCtx.fill();
+}
+
 function animateTitleMap() {
   requestAnimationFrame(animateTitleMap);
   if (!titleMapCtx) return;
@@ -1351,10 +1380,16 @@ function animateTitleMap() {
     if (missile.active) {
       missile.progress += 0.006;
       if (missile.progress >= 1) {
-        titleMissiles.splice(idx, 1);
+        missile.active = false;
+        missile.explosion = { frame: 0 };
       } else {
         drawTitleMissileTrajectory(missile.source, missile.target, missile.progress);
       }
+    } else if (missile.explosion && missile.explosion.frame < 20) {
+      drawTitleExplosion(missile.target.x, missile.target.y, missile.explosion.frame);
+      missile.explosion.frame++;
+    } else if (missile.explosion && missile.explosion.frame >= 20) {
+      titleMissiles.splice(idx, 1);
     }
   });
 }
