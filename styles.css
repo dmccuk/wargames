@@ -146,7 +146,7 @@ body {
 @media (max-width: 768px) {
   .title-logo {
     font-size: 48px;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
   }
   
   #title-globe-canvas {
@@ -170,7 +170,7 @@ body {
   .title-logo {
     font-size: 36px;
     letter-spacing: 5px;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
   }
   
   #title-globe-canvas {
