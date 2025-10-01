@@ -19,8 +19,7 @@ let sdiShieldActive = false;
 let sdiSatellites = [];
 let sdiMeshes = [];
 let intelligenceInterval = null;
-let scoreboard = [];
-let enemyLaunchInterval = null;
+let transmissionInterval = null;
 let gameTimeRemaining = 360;
 let citiesRemaining = 10;
 let interceptCount = 0;
@@ -195,7 +194,7 @@ function updateAllScores() {
   if (finalScore) finalScore.textContent = gameScore;
 }
 
-// ==================== LEVEL 1: THE BACKDOOR ====================
+// ==================== LEVEL 1-4 ====================
 function startGame() {
   playBeep();
   gameScore = 0;
@@ -244,7 +243,6 @@ function checkPassword() {
   }
 }
 
-// ==================== LEVEL 2: WAR DIALER ====================
 function startLevel2() {
   currentLevel = 2;
   showScreen('level2-screen');
@@ -290,7 +288,6 @@ function startLevel2() {
   }, 400);
 }
 
-// ==================== LEVEL 3: GAMES LIST ====================
 function startLevel3() {
   currentLevel = 3;
   showScreen('level3-screen');
@@ -313,7 +310,6 @@ function selectGame(game) {
   }
 }
 
-// ==================== LEVEL 4: LAUNCH CODES ====================
 function startLevel4() {
   currentLevel = 4;
   showScreen('level4-screen');
@@ -327,24 +323,9 @@ function loadPuzzle() {
   const container = document.getElementById('puzzle-container');
   const puzzle = puzzles[currentPuzzle];
   
-  let html = `
-    <div class="code-puzzle">
-      <div class="puzzle-title">CODE ${currentPuzzle + 1}/3: ${puzzle.question}</div>
-  `;
-  
-  if (puzzle.binary) {
-    html += `<div class="binary-display">${puzzle.binary}</div>`;
-  }
-  
-  html += `
-      <div class="input-group">
-        <span class="input-label">ANSWER:</span>
-        <input type="number" class="game-input" id="puzzle-input" placeholder="ENTER NUMBER">
-        <button class="submit-btn" onclick="window.checkPuzzle()">SUBMIT</button>
-      </div>
-    </div>
-  `;
-  
+  let html = `<div class="code-puzzle"><div class="puzzle-title">CODE ${currentPuzzle + 1}/3: ${puzzle.question}</div>`;
+  if (puzzle.binary) html += `<div class="binary-display">${puzzle.binary}</div>`;
+  html += `<div class="input-group"><span class="input-label">ANSWER:</span><input type="number" class="game-input" id="puzzle-input" placeholder="ENTER NUMBER"><button class="submit-btn" onclick="window.checkPuzzle()">SUBMIT</button></div></div>`;
   container.innerHTML = html;
   
   setTimeout(() => {
@@ -390,13 +371,12 @@ function checkPuzzle() {
   }
 }
 
-// ==================== LEVEL 5: NORAD SYSTEM ====================
+// ==================== LEVEL 5 ====================
 function startLevel5() {
   currentLevel = 5;
   showScreen('norad-screen');
   document.getElementById('connection-status').classList.add('active');
   playBeep();
-  
   citiesRemaining = 10;
   interceptCount = 0;
   gameTimeRemaining = 360;
@@ -415,24 +395,22 @@ function startLevel5() {
   addTerminalLine('  SDI - Activate defensive shield');
   addTerminalLine('  LIST - Show countries');
   addTerminalLine('  STATUS - System status');
+  addTerminalLine('  AUTO - Enable auto-retaliation');
   addTerminalLine('  HELP - Show commands');
   addTerminalLine('');
 
   loadGeoData();
-  loadScoreboard();
   initGlobe();
   initMap();
   setupTerminal();
   initSystemMessages();
   startIntelligenceReports();
+  startTransmissionPopups();
   startSubmarinePatrol();
   createSDISatellites();
   startGameTimer();
   startEnemyAttacks();
-
-  launchTimer = setTimeout(() => {
-    endGame();
-  }, 360000);
+  launchTimer = setTimeout(() => endGame(), 360000);
 }
 
 function startGameTimer() {
@@ -442,11 +420,7 @@ function startGameTimer() {
     const secs = (gameTimeRemaining % 60).toString().padStart(2, '0');
     const timerEl = document.getElementById('game-timer');
     if (timerEl) timerEl.textContent = `${mins}:${secs}`;
-    
-    if (gameTimeRemaining <= 0) {
-      endGame();
-    }
-    
+    if (gameTimeRemaining <= 0) endGame();
     if (gameTimeRemaining === 60) {
       addTerminalLine('⚠ WARNING: 60 SECONDS REMAINING', true);
       playDefconAlarm();
@@ -456,58 +430,49 @@ function startGameTimer() {
 
 function startEnemyAttacks() {
   let baseDelay = 8000;
-  
   const launchEnemyMissile = () => {
     if (!autoLaunchEnabled && gameTimeRemaining > 0) {
       const enemies = ['RUSSIA', 'CHINA'];
       const source = enemies[Math.floor(Math.random() * enemies.length)];
       launchMissile(source, 'USA');
-      
       baseDelay = Math.max(3000, baseDelay - 200);
       setTimeout(launchEnemyMissile, baseDelay + Math.random() * 3000);
     }
   };
-  
   setTimeout(launchEnemyMissile, 5000);
 }
 
 // ==================== SDI SYSTEM ====================
 function createSDISatellites() {
   const positions = [
-    { lat: 45, lon: -100 },
-    { lat: 35, lon: -75 },
-    { lat: 50, lon: -120 },
-    { lat: 40, lon: -95 },
-    { lat: 30, lon: -110 },
-    { lat: 55, lon: -85 },
-    { lat: 38, lon: -105 },
-    { lat: 42, lon: -90 }
+    { lat: 50, lon: -100 },
+    { lat: 35, lon: -120 },
+    { lat: 35, lon: -80 },
+    { lat: 42, lon: -100 }
   ];
   
   positions.forEach(pos => {
-    const phi = (90 - pos.lat) * (Math.PI / 180);
-    const theta = (pos.lon + 180) * (Math.PI / 180);
-    const radius = 2.6;
-    
+    sdiSatellites.push({ lat: pos.lat, lon: pos.lon, active: true });
+    const satGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+    const satMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.6
+    });
+    const satMesh = new THREE.Mesh(satGeometry, satMaterial);
+    scene.add(satMesh);
+    sdiMeshes.push(satMesh);
+  });
+}
+
+function updateSatellitePositions() {
+  const radius = 2.6;
+  sdiSatellites.forEach((sat, idx) => {
+    if (!sat.active || !sdiMeshes[idx]) return;
+    const phi = (90 - sat.lat) * (Math.PI / 180);
+    const theta = (sat.lon + 180) * (Math.PI / 180);
     const x = -radius * Math.sin(phi) * Math.cos(theta);
     const y = radius * Math.cos(phi);
     const z = radius * Math.sin(phi) * Math.sin(theta);
-    
-    sdiSatellites.push({
-      position: { x, y, z },
-      active: true
-    });
-    
-    const satGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-    const satMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x00ffff,
-      emissive: 0x00ffff,
-      emissiveIntensity: 0.6
-    });
-    const satMesh = new THREE.Mesh(satGeometry, satMaterial);
-    satMesh.position.set(x, y, z);
-    scene.add(satMesh);
-    sdiMeshes.push(satMesh);
+    sdiMeshes[idx].position.set(x, y, z);
   });
 }
 
@@ -523,32 +488,26 @@ function closeSDIPopup() {
 
 function confirmSDIActivation() {
   closeSDIPopup();
-  
   if (sdiShieldActive) {
     addTerminalLine('SDI SHIELD ALREADY ACTIVE');
     return;
   }
-  
   if (gameScore < 5000) {
     addTerminalLine('INSUFFICIENT FUNDS - NEED 5000 POINTS', true);
     playError();
     return;
   }
-  
   gameScore -= 5000;
   sdiShieldActive = true;
   shieldDuration = 60;
-  
   addTerminalLine('');
   addTerminalLine('ACTIVATING SDI DEFENSIVE SHIELD...');
   addTerminalLine('SATELLITE WEAPONS ONLINE');
   addTerminalLine('INTERCEPTOR TARGETING: USA');
   addTerminalLine('DURATION: 60 SECONDS');
   playSuccess();
-  
   document.getElementById('shield-status').textContent = 'ACTIVE (60s)';
   document.getElementById('shield-status').classList.add('active');
-  
   updateNoradStatus();
   startShieldTimer();
 }
@@ -557,7 +516,6 @@ function startShieldTimer() {
   shieldTimer = setInterval(() => {
     shieldDuration--;
     document.getElementById('shield-status').textContent = `ACTIVE (${shieldDuration}s)`;
-    
     if (shieldDuration <= 0) {
       deactivateShield();
     } else if (shieldDuration === 10) {
@@ -573,10 +531,8 @@ function deactivateShield() {
     clearInterval(shieldTimer);
     shieldTimer = null;
   }
-  
   document.getElementById('shield-status').textContent = 'OFFLINE';
   document.getElementById('shield-status').classList.remove('active');
-  
   addTerminalLine('');
   addTerminalLine('SDI SHIELD DEACTIVATED');
   addTerminalLine('');
@@ -585,7 +541,7 @@ function deactivateShield() {
 function showSDIStatus() {
   addTerminalLine('');
   addTerminalLine('SDI SYSTEM STATUS:');
-  addTerminalLine(`SATELLITES: ${sdiSatellites.filter(s => s.active).length}/8 OPERATIONAL`);
+  addTerminalLine(`SATELLITES: ${sdiSatellites.filter(s => s.active).length}/4 OPERATIONAL`);
   addTerminalLine(`SHIELD: ${sdiShieldActive ? `ACTIVE (${shieldDuration}s)` : 'OFFLINE'}`);
   if (sdiShieldActive) {
     addTerminalLine('INTERCEPT MODE: AUTOMATED');
@@ -597,7 +553,6 @@ function showSDIStatus() {
 function attemptIntercept(missile) {
   if (!sdiShieldActive) return false;
   if (missile.target.lat !== countries.USA.lat) return false;
-  
   if (Math.random() < 0.75) {
     missile.intercepted = true;
     interceptCount++;
@@ -609,7 +564,7 @@ function attemptIntercept(missile) {
   return false;
 }
 
-// ==================== INTELLIGENCE REPORTS ====================
+// ==================== INTELLIGENCE & TRANSMISSIONS ====================
 const intelligenceReports = [
   'CIA REPORT: UNUSUAL ACTIVITY AT RUSSIAN SILOS',
   'NSA INTERCEPT: ENCRYPTED TRANSMISSION FROM BEIJING',
@@ -621,6 +576,16 @@ const intelligenceReports = [
   'SATELLITE RECON: MISSILE DOOR ACTIVITY'
 ];
 
+const transmissionMessages = [
+  { from: 'KREMLIN', message: 'WE HAVE DETECTED YOUR LAUNCH PREPARATIONS. STAND DOWN IMMEDIATELY.' },
+  { from: 'BEIJING COMMAND', message: 'UNAUTHORIZED MISSILE ACTIVITY DETECTED. ESCALATION PROTOCOLS INITIATED.' },
+  { from: 'UK COMMAND', message: 'TRIDENT SUBMARINES ON STANDBY. AWAITING ORDERS.' },
+  { from: 'FRENCH COMMAND', message: 'FORCE DE FRAPPE AT READINESS LEVEL 2.' },
+  { from: 'NORAD', message: 'MULTIPLE INBOUND CONTACTS. RECOMMEND IMMEDIATE DEFENSIVE ACTION.' },
+  { from: 'SAC', message: 'STRATEGIC AIR COMMAND: ALL BOMBERS AIRBORNE.' },
+  { from: 'RUSSIAN FLEET', message: 'SUBMARINE LAUNCHED BALLISTIC MISSILES ARMED AND READY.' }
+];
+
 function startIntelligenceReports() {
   intelligenceInterval = setInterval(() => {
     if (Math.random() < 0.3) {
@@ -630,7 +595,36 @@ function startIntelligenceReports() {
   }, 8000);
 }
 
-// ==================== SUBMARINE PATROL ====================
+function startTransmissionPopups() {
+  transmissionInterval = setInterval(() => {
+    if (Math.random() < 0.2) {
+      const trans = transmissionMessages[Math.floor(Math.random() * transmissionMessages.length)];
+      showTransmission(trans.from, trans.message);
+    }
+  }, 15000);
+}
+
+function showTransmission(from, message) {
+  const container = document.getElementById('transmission-container');
+  const popup = document.createElement('div');
+  popup.className = 'transmission-popup';
+  popup.style.left = `${50 + Math.random() * 400}px`;
+  popup.style.top = `${100 + Math.random() * 300}px`;
+  popup.innerHTML = `
+    <div class="transmission-header">⚠ INCOMING TRANSMISSION</div>
+    <div class="transmission-body">
+      <div style="color: var(--warn); margin-bottom: 10px;">FROM: ${from}</div>
+      <div>${message}</div>
+    </div>
+    <button class="transmission-dismiss" onclick="this.parentElement.remove()">DISMISS</button>
+  `;
+  container.appendChild(popup);
+  playDefconAlarm();
+  setTimeout(() => {
+    if (popup.parentElement) popup.remove();
+  }, 10000);
+}
+
 function startSubmarinePatrol() {
   setInterval(() => {
     if (countries.UK_TRIDENT) {
@@ -648,40 +642,6 @@ function startSubmarinePatrol() {
   }, 30000);
 }
 
-// ==================== SCOREBOARD SYSTEM ====================
-function loadScoreboard() {
-  scoreboard = [];
-}
-
-function saveScore() {
-  const entry = {
-    score: gameScore,
-    missiles: missileCount,
-    defcon: defconLevel,
-    intercepts: interceptCount,
-    citiesLost: 10 - citiesRemaining,
-    date: new Date().toISOString()
-  };
-  
-  scoreboard.push(entry);
-  scoreboard.sort((a, b) => b.score - a.score);
-  scoreboard = scoreboard.slice(0, 10);
-}
-
-function showScoreboard() {
-  addTerminalLine('');
-  addTerminalLine('=== TOP 10 SCORES ===');
-  if (scoreboard.length === 0) {
-    addTerminalLine('NO SCORES YET');
-  } else {
-    scoreboard.forEach((entry, idx) => {
-      const date = new Date(entry.date).toLocaleDateString();
-      addTerminalLine(`${idx + 1}. ${entry.score} PTS - ${entry.intercepts} INTERCEPTS - ${date}`);
-    });
-  }
-  addTerminalLine('');
-}
-
 // ==================== COMMAND PROCESSING ====================
 function processCommand(command) {
   if (command.startsWith('LAUNCH ')) {
@@ -690,13 +650,10 @@ function processCommand(command) {
       const source = parts[1];
       const target = parts[2];
       const count = parseInt(parts[3]) || 1;
-      
       if (count > 1 && count <= 10) {
         addTerminalLine(`LAUNCHING ${count} MISSILE SALVO`);
         for (let i = 0; i < count; i++) {
-          setTimeout(() => {
-            launchMissile(source, target);
-          }, i * 300);
+          setTimeout(() => launchMissile(source, target), i * 300);
         }
       } else if (count === 1) {
         launchMissile(source, target);
@@ -712,13 +669,15 @@ function processCommand(command) {
     showSDIPopup();
   } else if (command === 'SDI STATUS') {
     showSDIStatus();
+  } else if (command === 'AUTO') {
+    autoLaunchEnabled = !autoLaunchEnabled;
+    addTerminalLine(`AUTO-RETALIATION ${autoLaunchEnabled ? 'ENABLED' : 'DISABLED'}`);
+    if (autoLaunchEnabled) startAutoLaunch();
   } else if (command === 'LIST') {
     addTerminalLine('');
     addTerminalLine('AVAILABLE COUNTRIES:');
     Object.keys(countries).forEach(country => {
-      if (!countries[country].mobile) {
-        addTerminalLine('  - ' + country);
-      }
+      if (!countries[country].mobile) addTerminalLine('  - ' + country);
     });
     addTerminalLine('');
     addTerminalLine('MOBILE PLATFORMS:');
@@ -736,8 +695,6 @@ function processCommand(command) {
     addTerminalLine(`SCORE: ${gameScore}`);
     addTerminalLine(`SDI SHIELD: ${sdiShieldActive ? `ACTIVE (${shieldDuration}s)` : 'OFFLINE'}`);
     addTerminalLine('');
-  } else if (command === 'SCOREBOARD') {
-    showScoreboard();
   } else if (command === 'HELP') {
     addTerminalLine('');
     addTerminalLine('AVAILABLE COMMANDS:');
@@ -746,12 +703,23 @@ function processCommand(command) {
     addTerminalLine('  SDI STATUS - Show SDI system status');
     addTerminalLine('  LIST - Show countries and platforms');
     addTerminalLine('  STATUS - System status');
-    addTerminalLine('  SCOREBOARD - View high scores');
+    addTerminalLine('  AUTO - Toggle auto-retaliation');
     addTerminalLine('  HELP - Show commands');
     addTerminalLine('');
   } else if (command) {
     addTerminalLine('UNKNOWN COMMAND. TYPE HELP', true);
     playError();
+  }
+}
+
+function startAutoLaunch() {
+  if (!autoLaunchEnabled) return;
+  const countryList = Object.keys(countries).filter(c => !countries[c].mobile);
+  const source = countryList[Math.floor(Math.random() * countryList.length)];
+  const target = countryList[Math.floor(Math.random() * countryList.length)];
+  if (source !== target) launchMissile(source, target);
+  if (autoLaunchEnabled && missileCount < 100) {
+    setTimeout(startAutoLaunch, 3000 + Math.random() * 2000);
   }
 }
 
@@ -767,12 +735,8 @@ function addTerminalLine(text, isAlert = false) {
 function loadGeoData() {
   fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
     .then(response => response.json())
-    .then(data => {
-      geoData = data;
-    })
-    .catch(error => {
-      console.log('GeoJSON load failed, continuing without map data');
-    });
+    .then(data => { geoData = data; })
+    .catch(error => { console.log('GeoJSON load failed'); });
 }
 
 function setupTerminal() {
@@ -795,26 +759,18 @@ function launchMissile(source, target) {
     playError();
     return;
   }
-
   missileCount++;
   playMissileLaunch();
-  
   const sourceLoc = countries[source];
   const targetLoc = countries[target];
-  
   const isEnemyAttack = target === 'USA' && (source === 'RUSSIA' || source === 'CHINA');
-  
-  if (!isEnemyAttack) {
-    addScore(500);
-  }
-  
+  if (!isEnemyAttack) addScore(500);
   addTerminalLine('');
   addTerminalLine('█ MISSILE LAUNCH DETECTED █', true);
   addTerminalLine(`SOURCE: ${source}`);
   addTerminalLine(`TARGET: ${target}`);
   addTerminalLine(`ETA: ${Math.floor(Math.random() * 10 + 15)} MINUTES`);
   addTerminalLine('');
-  
   const missile = {
     source: { lat: sourceLoc.lat, lon: sourceLoc.lon },
     target: { lat: targetLoc.lat, lon: targetLoc.lon },
@@ -823,19 +779,13 @@ function launchMissile(source, target) {
     intercepted: false,
     isEnemyAttack: isEnemyAttack
   };
-  
-  if (attemptIntercept(missile)) {
-    missile.intercepted = true;
-  }
-  
+  if (attemptIntercept(missile)) missile.intercepted = true;
   missiles.push(missile);
-
   const mapCanvas = document.getElementById('mapCanvas');
   const sourceX = ((sourceLoc.lon + 180) / 360) * mapCanvas.width;
   const sourceY = ((90 - sourceLoc.lat) / 180) * mapCanvas.height;
   const targetX = ((targetLoc.lon + 180) / 360) * mapCanvas.width;
   const targetY = ((90 - targetLoc.lat) / 180) * mapCanvas.height;
-
   mapMissiles.push({
     source: { x: sourceX, y: sourceY },
     target: { x: targetX, y: targetY },
@@ -845,13 +795,9 @@ function launchMissile(source, target) {
     intercepted: missile.intercepted,
     isEnemyAttack: isEnemyAttack
   });
-
   updateDefcon();
   updateNoradStatus();
-
-  if (citiesRemaining <= 0) {
-    endGame();
-  }
+  if (citiesRemaining <= 0) endGame();
 }
 
 function updateDefcon() {
@@ -866,10 +812,7 @@ function updateDefcon() {
     defconLevel = 3;
     addTerminalLine('! DEFCON 3 - INCREASE READINESS !', true);
   }
-
-  if (oldDefcon !== defconLevel) {
-    playDefconAlarm();
-  }
+  if (oldDefcon !== defconLevel) playDefconAlarm();
 }
 
 function updateNoradStatus() {
@@ -884,35 +827,16 @@ function endGame() {
   if (launchTimer) clearTimeout(launchTimer);
   if (gameTimerInterval) clearInterval(gameTimerInterval);
   if (intelligenceInterval) clearInterval(intelligenceInterval);
+  if (transmissionInterval) clearInterval(transmissionInterval);
   if (shieldTimer) clearInterval(shieldTimer);
   autoLaunchEnabled = false;
   playDefconAlarm();
-  
-  saveScore();
-  
   setTimeout(() => {
     document.getElementById('end-score').textContent = gameScore;
     document.getElementById('end-missiles').textContent = missileCount;
     document.getElementById('end-intercepts').textContent = interceptCount;
     document.getElementById('end-cities').textContent = 10 - citiesRemaining;
     showScreen('end-screen');
-    
-    setTimeout(() => {
-      const endScreen = document.getElementById('end-screen');
-      if (scoreboard.length > 0) {
-        const scoreboardDiv = document.createElement('div');
-        scoreboardDiv.style.marginTop = '40px';
-        scoreboardDiv.innerHTML = '<div class="terminal-text" style="font-size: 20px; margin-bottom: 20px;">TOP SCORES:</div>';
-        scoreboard.slice(0, 5).forEach((entry, idx) => {
-          const div = document.createElement('div');
-          div.className = 'terminal-text';
-          div.style.fontSize = '16px';
-          div.textContent = `${idx + 1}. ${entry.score} POINTS - ${entry.intercepts} INTERCEPTS`;
-          scoreboardDiv.appendChild(div);
-        });
-        endScreen.appendChild(scoreboardDiv);
-      }
-    }, 500);
   }, 2000);
 }
 
@@ -923,7 +847,6 @@ function initGlobe() {
   camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ canvas: globeCanvas, antialias: true });
   renderer.setClearColor(0x000000);
-
   const radius = 2;
   const segments = 12;
   const sphereGeometry = new THREE.SphereGeometry(radius, segments, segments);
@@ -933,10 +856,8 @@ function initGlobe() {
     transparent: true,
     opacity: 0.8
   });
-  
   globe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
   scene.add(globe);
-
   Object.entries(countries).forEach(([name, coords]) => {
     const phi = (90 - coords.lat) * (Math.PI / 180);
     const theta = (coords.lon + 180) * (Math.PI / 180);
@@ -949,7 +870,6 @@ function initGlobe() {
     marker.position.set(x, y, z);
     scene.add(marker);
   });
-
   camera.position.z = 5;
   resizeGlobe();
   animateGlobe();
@@ -971,7 +891,6 @@ function createGlobeMissileArc(source, target, progress) {
   const theta2 = (target.lon + 180) * (Math.PI / 180);
   const radius = 2;
   const points = [];
-  
   for (let i = 0; i <= progress * 50; i++) {
     const t = i / 50;
     const phi = phi1 + (phi2 - phi1) * t;
@@ -982,7 +901,6 @@ function createGlobeMissileArc(source, target, progress) {
     const z = (radius + altitude) * Math.sin(phi) * Math.sin(theta);
     points.push(new THREE.Vector3(x, y, z));
   }
-
   if (points.length > 1) {
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
@@ -994,17 +912,15 @@ function createGlobeMissileArc(source, target, progress) {
 function animateGlobe() {
   requestAnimationFrame(animateGlobe);
   if (!globe) return;
-
   globe.rotation.y += 0.003;
   globe.rotation.x += 0.001;
-
+  updateSatellitePositions();
   scene.children = scene.children.filter(child => 
     child === globe || 
     (child.geometry instanceof THREE.SphereGeometry && child.geometry.parameters.radius < 0.1) ||
     sdiMeshes.includes(child)
   );
-
-  missiles.forEach((missile, idx) => {
+  missiles.forEach(missile => {
     if (missile.active && !missile.intercepted) {
       missile.progress += 0.005;
       if (missile.progress >= 1) {
@@ -1018,7 +934,6 @@ function animateGlobe() {
       } else {
         const arc = createGlobeMissileArc(missile.source, missile.target, missile.progress);
         if (arc) scene.add(arc);
-        
         if (sdiShieldActive && missile.progress > 0.3 && missile.progress < 0.8 && missile.isEnemyAttack && !missile.intercepted) {
           if (Math.random() < 0.05) {
             const nearestSat = sdiMeshes[Math.floor(Math.random() * sdiMeshes.length)];
@@ -1040,7 +955,6 @@ function animateGlobe() {
       }
     }
   });
-
   renderer.render(scene, camera);
 }
 
@@ -1069,7 +983,6 @@ function drawWorldMap() {
   mapCtx.lineWidth = 1;
   mapCtx.shadowBlur = 5;
   mapCtx.shadowColor = '#33ff33';
-
   geoData.features.forEach(feature => {
     const geometry = feature.geometry;
     if (geometry.type === 'Polygon') {
@@ -1100,7 +1013,6 @@ function drawCountryMarkers() {
   mapCtx.fillStyle = '#ff0000';
   mapCtx.shadowBlur = 8;
   mapCtx.shadowColor = '#ff0000';
-
   Object.entries(countries).forEach(([name, coords]) => {
     const point = projectToCanvas(coords.lon, coords.lat);
     mapCtx.beginPath();
@@ -1122,7 +1034,6 @@ function drawMissileTrajectory(source, target, progress, intercepted) {
   const dy = target.y - source.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
   const arcHeight = distance * 0.3;
-
   const color = intercepted ? '#ffff00' : '#ff0000';
   mapCtx.strokeStyle = color;
   mapCtx.lineWidth = 2;
@@ -1131,7 +1042,6 @@ function drawMissileTrajectory(source, target, progress, intercepted) {
   mapCtx.setLineDash([5, 5]);
   mapCtx.beginPath();
   mapCtx.moveTo(source.x, source.y);
-
   for (let i = 0; i <= progress; i += 0.02) {
     const x = source.x + dx * i;
     const y = source.y + dy * i - Math.sin(i * Math.PI) * arcHeight;
@@ -1139,14 +1049,12 @@ function drawMissileTrajectory(source, target, progress, intercepted) {
   }
   mapCtx.stroke();
   mapCtx.setLineDash([]);
-
   if (progress < 1) {
     const currentX = source.x + dx * progress;
     const currentY = source.y + dy * progress - Math.sin(progress * Math.PI) * arcHeight;
-    
-    mapCtx.fillStyle = intercepted ? '#ffff00' : '#ffff00';
+    mapCtx.fillStyle = '#ffff00';
     mapCtx.shadowBlur = 15;
-    mapCtx.shadowColor = intercepted ? '#ffff00' : '#ffff00';
+    mapCtx.shadowColor = '#ffff00';
     mapCtx.beginPath();
     mapCtx.arc(currentX, currentY, 3, 0, Math.PI * 2);
     mapCtx.fill();
@@ -1178,11 +1086,9 @@ function drawExplosion(x, y, frame) {
 function animateMap() {
   requestAnimationFrame(animateMap);
   if (!mapCtx) return;
-
   mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
   drawWorldMap();
   drawCountryMarkers();
-
   mapMissiles.forEach(missile => {
     if (missile.active) {
       missile.progress += 0.008;
@@ -1191,9 +1097,7 @@ function animateMap() {
         if (!missile.intercepted) {
           missile.explosion = { frame: 0 };
           playExplosion();
-          if (!missile.isEnemyAttack) {
-            addScore(100);
-          }
+          if (!missile.isEnemyAttack) addScore(100);
           updateNoradStatus();
         }
       } else {
@@ -1206,12 +1110,6 @@ function animateMap() {
   });
 }
 
-window.addEventListener('resize', () => {
-  if (renderer) resizeGlobe();
-  if (mapCanvas) resizeMap();
-});
-
-// ==================== SYSTEM MESSAGES ====================
 const systemMessages = [
   'TRACKING SATELLITE PASS OVER SECTOR 7',
   'RADAR CONTACT: UNKNOWN AIRCRAFT',
@@ -1234,15 +1132,14 @@ function initSystemMessages() {
   }, 5000);
 }
 
-// ==================== RESTART GAME ====================
 function restartGame() {
   if (timerInterval) clearInterval(timerInterval);
   if (launchTimer) clearTimeout(launchTimer);
   if (gameTimerInterval) clearInterval(gameTimerInterval);
   if (systemMessagesInterval) clearInterval(systemMessagesInterval);
   if (intelligenceInterval) clearInterval(intelligenceInterval);
+  if (transmissionInterval) clearInterval(transmissionInterval);
   if (shieldTimer) clearInterval(shieldTimer);
-  
   gameScore = 0;
   currentLevel = 0;
   gameStartTime = 0;
@@ -1258,7 +1155,6 @@ function restartGame() {
   citiesRemaining = 10;
   interceptCount = 0;
   shieldDuration = 0;
-  
   if (scene) {
     scene.children.forEach(child => {
       if (child.geometry) child.geometry.dispose();
@@ -1270,23 +1166,25 @@ function restartGame() {
     renderer.dispose();
     renderer = null;
   }
-  
   sdiMeshes.forEach(mesh => {
     if (mesh.geometry) mesh.geometry.dispose();
     if (mesh.material) mesh.material.dispose();
   });
   sdiMeshes = [];
-  
   scene = null;
   camera = null;
   globe = null;
-  
+  document.getElementById('transmission-container').innerHTML = '';
   updateAllScores();
   showScreen('title-screen');
   playBeep();
 }
 
-// ==================== EXPOSE FUNCTIONS TO WINDOW ====================
+window.addEventListener('resize', () => {
+  if (renderer) resizeGlobe();
+  if (mapCanvas) resizeMap();
+});
+
 window.startGame = startGame;
 window.checkPassword = checkPassword;
 window.selectGame = selectGame;
@@ -1296,8 +1194,6 @@ window.showSDIPopup = showSDIPopup;
 window.closeSDIPopup = closeSDIPopup;
 window.confirmSDIActivation = confirmSDIActivation;
 
-// ==================== INITIALIZE ON LOAD ====================
 document.addEventListener('DOMContentLoaded', () => {
   playBeep();
-  loadScoreboard();
 });
